@@ -4,7 +4,7 @@ import core.sync.mutex;
 import core.sync.condition;
 import core.thread.osthread;
 
-public final class Promise(T) {
+public class Promise(T) {
     private {
         State state;
         static if (!is(T == void))
