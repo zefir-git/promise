@@ -15,7 +15,7 @@ public class Promise(T) {
         Thread executorThread;
     }
 
-    public static enum State {
+    private static enum State {
         PENDING,
         FULFILLED,
         REJECTED,
