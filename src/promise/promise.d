@@ -277,7 +277,7 @@ public class Promise(T) {
 
             static if (is(T == void))
                 return;
-            return fulfillmentValue;
+            else return this.fulfillmentValue;
         }
     }
 
@@ -314,7 +314,7 @@ public class Promise(T) {
                 throw error;
             });
 
-        return then!T((value) {
+        else return then!T((value) {
             onFinally();
             return value;
         }, (error) {
