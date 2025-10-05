@@ -153,8 +153,8 @@ public class Promise(T) {
             *          the same outcome as the original Promise if not handled.
             */
         public Promise!U then(U)(U delegate(T) onFulfilled, U delegate(Exception) onRejected) {
-            assert(onFulfilled !is null || is(U == void) || is(U == T), "Promise!" ~ T.stringof ~ ".then!" ~ U.stringof ~ "() called "
-                ~ "with no onFulfilled handler: cannot produce " ~ U.stringof ~ " from " ~ T.stringof ~ ".");
+            assert(onFulfilled !is null || is(U == void) || is(U == T), "Promise!" ~ T.stringof ~ ".then!" ~ U.stringof
+            ~ "() called with no onFulfilled handler: cannot produce " ~ U.stringof ~ " from " ~ T.stringof ~ ".");
             return new Promise!U((resolve, reject) {
                 T result;
                 try {
