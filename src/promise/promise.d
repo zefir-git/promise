@@ -1,7 +1,7 @@
 module promise;
 
-import core.sync.mutex;
 import core.sync.condition;
+import core.sync.mutex;
 import core.thread.osthread;
 
 /**

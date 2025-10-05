@@ -1,10 +1,9 @@
 module promise_test;
 
-import promise;
 import core.thread;
 import core.time;
+import promise;
 import std.exception;
-import std.stdio;
 
 ///  Test basic promise fulfillment with value
 unittest {
@@ -454,7 +453,7 @@ unittest {
 
 ///  Test await blocks until promise settles
 unittest {
-    import std.datetime.stopwatch : StopWatch, AutoStart;
+    import std.datetime.stopwatch : AutoStart, StopWatch;
 
     auto sw = StopWatch(AutoStart.yes);
     auto p = new Promise!int((resolve, reject) {
@@ -486,7 +485,7 @@ unittest {
         resolve(3);
     });
 
-    import std.datetime.stopwatch : StopWatch, AutoStart;
+    import std.datetime.stopwatch : AutoStart, StopWatch;
     auto sw = StopWatch(AutoStart.yes);
 
     int sum = p1.await() + p2.await() + p3.await();
