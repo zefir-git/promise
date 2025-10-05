@@ -24,20 +24,6 @@ public class Promise(T) {
         REJECTED,
     }
 
-    static if (is(T == void))
-        /**
-         * Fulfills the promise.
-         */
-        public alias Resolve = void delegate();
-    else
-        /**
-         * Fulfills the promise with the provided value.
-         *
-         * Params:
-         *   value = Value to fulfill the promise with.
-         */
-        public alias Resolve = void delegate(T value);
-
     /**
      * Rejects the promise.
      *
@@ -91,32 +77,6 @@ public class Promise(T) {
     }
 
     private this() {}
-
-    /**
-     * Creates a void Promise that is already resolved.
-     */
-    static if (is(T == void)) public static Promise!T resolve() {
-        auto promise = new Promise!T();
-        promise.mutex = new Mutex();
-        promise.state = State.FULFILLED;
-        return promise;
-    }
-
-    /**
-     * Resolves the given value to a Promise. If the value is a Promise, that Promise is returned.
-     *
-     * Params:
-     *     value = Value to be resolved.
-     */
-    else public static Promise!T resolve(T value) {
-        static if (is(T == Promise))
-            return value;
-        auto promise = new Promise!T();
-        promise.mutex = new Mutex();
-        promise.state = State.FULFILLED;
-        promise.fulfillmentValue = value;
-        return promise;
-    }
 
     /**
      * Creates a Promise that is rejected with a given reason.
@@ -195,6 +155,21 @@ public class Promise(T) {
     }
 
     static if (is(T == void)) {
+        /**
+         * Creates a void Promise that is already resolved.
+         */
+        public static Promise!T resolve() {
+            auto promise = new Promise!T();
+            promise.mutex = new Mutex();
+            promise.state = State.FULFILLED;
+            return promise;
+        }
+
+        /**
+        * Fulfills the promise.
+        */
+        public alias Resolve = void delegate();
+
         private void _resolve() {
             synchronized(mutex) {
                 if (state != State.PENDING) return;
@@ -258,6 +233,30 @@ public class Promise(T) {
     }
 
     else {
+        /**
+         * Resolves the given value to a Promise. If the value is a Promise, that Promise is returned.
+         *
+         * Params:
+         *     value = Value to be resolved.
+         */
+        public static Promise!T resolve(T value) {
+            static if (is(T == Promise))
+                return value;
+            auto promise = new Promise!T();
+            promise.mutex = new Mutex();
+            promise.state = State.FULFILLED;
+            promise.fulfillmentValue = value;
+            return promise;
+        }
+        
+        /**
+        * Fulfills the promise with the provided value.
+        *
+        * Params:
+        *   value = Value to fulfill the promise with.
+        */
+        public alias Resolve = void delegate(T value);
+
         private void _resolve(T value) {
             synchronized(mutex) {
                 if (state != State.PENDING) return;
