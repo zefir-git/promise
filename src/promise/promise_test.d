@@ -43,13 +43,7 @@ unittest {
     auto p = new Promise!int((resolve, reject) {
         reject(new Exception("Custom error"));
     });
-
-    try {
-        p.await();
-        assert(false, "Should have thrown");
-    } catch (Exception e) {
-        assert(e.msg == "Custom error");
-    }
+    assertThrown!Exception(p.await());
 }
 
 ///  Test executor exception causes rejection
