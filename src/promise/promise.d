@@ -61,6 +61,8 @@ public class Promise(T) {
             *          the same outcome as the original Promise if not handled.
             */
         public Promise!U then(U)(U delegate() onFulfilled, U delegate(Exception) onRejected) {
+            assert(onFulfilled !is null || is(U == void), "Promise!void.then!" ~ U.stringof ~ "() called with no "
+                ~ "onFulfilled handler: cannot produce " ~ U.stringof ~ " from void.");
             return new Promise!U((resolve, reject) {
                 try {
                     await();
@@ -84,7 +86,8 @@ public class Promise(T) {
                     }
                     else resolve(onFulfilled());
                 }
-                else resolve();
+                else static if(is(U == void))
+                    resolve();
             });
         }
 
@@ -150,6 +153,8 @@ public class Promise(T) {
             *          the same outcome as the original Promise if not handled.
             */
         public Promise!U then(U)(U delegate(T) onFulfilled, U delegate(Exception) onRejected) {
+            assert(onFulfilled !is null || is(U == void) || is(U == T), "Promise!" ~ T.stringof ~ ".then!" ~ U.stringof ~ "() called "
+                ~ "with no onFulfilled handler: cannot produce " ~ U.stringof ~ " from " ~ T.stringof ~ ".");
             return new Promise!U((resolve, reject) {
                 T result;
                 try {
@@ -174,7 +179,12 @@ public class Promise(T) {
                     }
                     else resolve(onFulfilled(result));
                 }
-                else resolve(result);
+                else {
+                    static if (is(U == void))
+                        resolve();
+                    else static if (is(U == T))
+                        resolve(result);
+                }
             });
         }
 
@@ -292,7 +302,7 @@ public class Promise(T) {
      *          Promise is rejected, this promise resolves to the value returned by the `onRejected` delegate or rejects
      *          with the reason thrown by it, otherwise it fulfills with the same value as the original Promise.
      */
-    public Promise!U catch_(U)(U delegate(Exception) onRejected) {
+    public Promise!T catch_(T delegate(Exception) onRejected) {
         return then(null, onRejected);
     }
 
