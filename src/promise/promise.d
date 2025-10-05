@@ -23,6 +23,175 @@ public class Promise(T) {
         FULFILLED,
         REJECTED,
     }
+    
+    static if (is(T == void)) {
+        /**
+            * Creates a void Promise that is already resolved.
+            */
+        public static Promise!T resolve() {
+            auto promise = new Promise!T();
+            promise.mutex = new Mutex();
+            promise.state = State.FULFILLED;
+            return promise;
+        }
+
+        /**
+        * Fulfills the promise.
+        */
+        public alias Resolve = void delegate();
+
+        private void _resolve() {
+            synchronized(mutex) {
+                if (state != State.PENDING) return;
+                state = State.FULFILLED;
+                condition.notifyAll();
+            }
+        }
+
+        /**
+            * Appends fulfillment and rejection handlers to the Promise.
+            *
+            * Params:
+            *   onFulfilled = Delegate to asynchronously execute when this Promise becomes fulfilled. Its return value
+            *                 becomes the fulfillment value of the Promise returned by this method.
+            *   onRejected = Delegate to asynchronously execute when this Promise becomes rejected. Its return value becomes
+            *                the fulfillment value of the Promise returned by this method. The delegate is called with a
+            *                `reason` argument indicating the rejection reason.
+            * Returns: Immediately a new Promise that resolves to the return value of the called handler, or settles with
+            *          the same outcome as the original Promise if not handled.
+            */
+        public Promise!U then(U)(U delegate() onFulfilled, U delegate(Exception) onRejected) {
+            return new Promise!U((resolve, reject) {
+                try {
+                    await();
+                }
+                catch (Exception e) {
+                    if (onRejected !is null)
+                        static if (is(U == void)) {
+                            onRejected(e);
+                            resolve();
+                        }
+                        else resolve(onRejected(e));
+                    else reject(e);
+
+                    return;
+                }
+
+                if (onFulfilled !is null) {
+                    static if (is(U == void)) {
+                        onFulfilled();
+                        resolve();
+                    }
+                    else resolve(onFulfilled());
+                }
+                else resolve();
+            });
+        }
+
+        /**
+            * Appends a fulfillment handler to the Promise.
+            *
+            * Params:
+            *   onFulfilled = Delegate to asynchronously execute when this Promise becomes fulfilled. Its return value
+            *                 becomes the fulfillment value of the Promise returned by this method.
+            * Returns: Immediately a new Promise that resolves to the return value of the called handler, or settles with
+            *          the same outcome as the original Promise if not handled.
+            */
+        public Promise!U then(U)(U delegate() onFulfilled) {
+            return then(onFulfilled, null);
+        }
+    }
+
+    else {
+        /**
+            * Resolves the given value to a Promise. If the value is a Promise, that Promise is returned.
+            *
+            * Params:
+            *     value = Value to be resolved.
+            */
+        public static Promise!T resolve(T value) {
+            static if (is(T == Promise))
+                return value;
+            auto promise = new Promise!T();
+            promise.mutex = new Mutex();
+            promise.state = State.FULFILLED;
+            promise.fulfillmentValue = value;
+            return promise;
+        }
+        
+        /**
+        * Fulfills the promise with the provided value.
+        *
+        * Params:
+        *   value = Value to fulfill the promise with.
+        */
+        public alias Resolve = void delegate(T value);
+
+        private void _resolve(T value) {
+            synchronized(mutex) {
+                if (state != State.PENDING) return;
+                state = State.FULFILLED;
+                fulfillmentValue = value;
+                condition.notifyAll();
+            }
+        }
+
+        /**
+            * Appends fulfillment and rejection handlers to the Promise.
+            *
+            * Params:
+            *   onFulfilled = Delegate to asynchronously execute when this Promise becomes fulfilled. Its return value
+            *                 becomes the fulfillment value of the Promise returned by this method. The delegate is called
+            *                 with a `value` argument indicating the fulfillment value of the original Promise.
+            *   onRejected = Delegate to asynchronously execute when this Promise becomes rejected. Its return value becomes
+            *                the fulfillment value of the Promise returned by this method. The delegate is called with a
+            *                `reason` argument indicating the rejection reason.
+            * Returns: Immediately a new Promise that resolves to the return value of the called handler, or settles with
+            *          the same outcome as the original Promise if not handled.
+            */
+        public Promise!U then(U)(U delegate(T) onFulfilled, U delegate(Exception) onRejected) {
+            return new Promise!U((resolve, reject) {
+                T result;
+                try {
+                    result = await();
+                }
+                catch (Exception e) {
+                    if (onRejected !is null)
+                        static if (is(U == void)) {
+                            onRejected(e);
+                            resolve();
+                        }
+                        else resolve(onRejected(e));
+                    else reject(e);
+
+                    return;
+                }
+
+                if (onFulfilled !is null) {
+                    static if (is(U == void)) {
+                        onFulfilled(result);
+                        resolve();
+                    }
+                    else resolve(onFulfilled(result));
+                }
+                else resolve(result);
+            });
+        }
+
+        /**
+            * Appends fulfillment and rejection handlers to the Promise.
+            *
+            * Params:
+            *   onFulfilled = Delegate to asynchronously execute when this Promise becomes fulfilled. Its return value
+            *                 becomes the fulfillment value of the Promise returned by this method. The delegate is called
+            *                 with a `value` argument indicating the fulfillment value of the original Promise.
+            * Returns: Immediately a new Promise that resolves to the return value of the called handler, or settles with
+            *          the same outcome as the original Promise if not handled.
+            */
+        public Promise!U then(U)(U delegate(T) onFulfilled) {
+            return then(onFulfilled, null);
+        }
+    }
 
     /**
      * Rejects the promise.
@@ -152,175 +321,6 @@ public class Promise(T) {
             onFinally();
             return throw error;
         });
-    }
-
-    static if (is(T == void)) {
-        /**
-         * Creates a void Promise that is already resolved.
-         */
-        public static Promise!T resolve() {
-            auto promise = new Promise!T();
-            promise.mutex = new Mutex();
-            promise.state = State.FULFILLED;
-            return promise;
-        }
-
-        /**
-        * Fulfills the promise.
-        */
-        public alias Resolve = void delegate();
-
-        private void _resolve() {
-            synchronized(mutex) {
-                if (state != State.PENDING) return;
-                state = State.FULFILLED;
-                condition.notifyAll();
-            }
-        }
-
-        /**
-         * Appends fulfillment and rejection handlers to the Promise.
-         *
-         * Params:
-         *   onFulfilled = Delegate to asynchronously execute when this Promise becomes fulfilled. Its return value
-         *                 becomes the fulfillment value of the Promise returned by this method.
-         *   onRejected = Delegate to asynchronously execute when this Promise becomes rejected. Its return value becomes
-         *                the fulfillment value of the Promise returned by this method. The delegate is called with a
-         *                `reason` argument indicating the rejection reason.
-         * Returns: Immediately a new Promise that resolves to the return value of the called handler, or settles with
-         *          the same outcome as the original Promise if not handled.
-         */
-        public Promise!U then(U)(U delegate() onFulfilled, U delegate(Exception) onRejected) {
-            return new Promise!U((resolve, reject) {
-                try {
-                    await();
-                }
-                catch (Exception e) {
-                    if (onRejected !is null)
-                        static if (is(U == void)) {
-                            onRejected(e);
-                            resolve();
-                        }
-                        else resolve(onRejected(e));
-                    else reject(e);
-
-                    return;
-                }
-
-                if (onFulfilled !is null) {
-                    static if (is(U == void)) {
-                        onFulfilled();
-                        resolve();
-                    }
-                    else resolve(onFulfilled());
-                }
-                else resolve();
-            });
-        }
-
-        /**
-         * Appends a fulfillment handler to the Promise.
-         *
-         * Params:
-         *   onFulfilled = Delegate to asynchronously execute when this Promise becomes fulfilled. Its return value
-         *                 becomes the fulfillment value of the Promise returned by this method.
-         * Returns: Immediately a new Promise that resolves to the return value of the called handler, or settles with
-         *          the same outcome as the original Promise if not handled.
-         */
-        public Promise!U then(U)(U delegate() onFulfilled) {
-            return then(onFulfilled, null);
-        }
-    }
-
-    else {
-        /**
-         * Resolves the given value to a Promise. If the value is a Promise, that Promise is returned.
-         *
-         * Params:
-         *     value = Value to be resolved.
-         */
-        public static Promise!T resolve(T value) {
-            static if (is(T == Promise))
-                return value;
-            auto promise = new Promise!T();
-            promise.mutex = new Mutex();
-            promise.state = State.FULFILLED;
-            promise.fulfillmentValue = value;
-            return promise;
-        }
-        
-        /**
-        * Fulfills the promise with the provided value.
-        *
-        * Params:
-        *   value = Value to fulfill the promise with.
-        */
-        public alias Resolve = void delegate(T value);
-
-        private void _resolve(T value) {
-            synchronized(mutex) {
-                if (state != State.PENDING) return;
-                state = State.FULFILLED;
-                fulfillmentValue = value;
-                condition.notifyAll();
-            }
-        }
-
-        /**
-         * Appends fulfillment and rejection handlers to the Promise.
-         *
-         * Params:
-         *   onFulfilled = Delegate to asynchronously execute when this Promise becomes fulfilled. Its return value
-         *                 becomes the fulfillment value of the Promise returned by this method. The delegate is called
-         *                 with a `value` argument indicating the fulfillment value of the original Promise.
-         *   onRejected = Delegate to asynchronously execute when this Promise becomes rejected. Its return value becomes
-         *                the fulfillment value of the Promise returned by this method. The delegate is called with a
-         *                `reason` argument indicating the rejection reason.
-         * Returns: Immediately a new Promise that resolves to the return value of the called handler, or settles with
-         *          the same outcome as the original Promise if not handled.
-         */
-        public Promise!U then(U)(U delegate(T) onFulfilled, U delegate(Exception) onRejected) {
-            return new Promise!U((resolve, reject) {
-                T result;
-                try {
-                    result = await();
-                }
-                catch (Exception e) {
-                    if (onRejected !is null)
-                        static if (is(U == void)) {
-                            onRejected(e);
-                            resolve();
-                        }
-                        else resolve(onRejected(e));
-                    else reject(e);
-
-                    return;
-                }
-
-                if (onFulfilled !is null) {
-                    static if (is(U == void)) {
-                        onFulfilled(result);
-                        resolve();
-                    }
-                    else resolve(onFulfilled(result));
-                }
-                else resolve(result);
-            });
-        }
-
-        /**
-         * Appends fulfillment and rejection handlers to the Promise.
-         *
-         * Params:
-         *   onFulfilled = Delegate to asynchronously execute when this Promise becomes fulfilled. Its return value
-         *                 becomes the fulfillment value of the Promise returned by this method. The delegate is called
-         *                 with a `value` argument indicating the fulfillment value of the original Promise.
-         * Returns: Immediately a new Promise that resolves to the return value of the called handler, or settles with
-         *          the same outcome as the original Promise if not handled.
-         */
-        public Promise!U then(U)(U delegate(T) onFulfilled) {
-            return then(onFulfilled, null);
-        }
     }
 
     private void _reject(Exception reason) {
