@@ -8,7 +8,7 @@ libpromise.dylib
 libpromise.dll
 libpromise.a
 libpromise.lib
-libpromise-test-*
+promise-test-*
 *.exe
 *.pdb
 *.o
