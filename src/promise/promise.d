@@ -1,13 +1,17 @@
 module promise;
 
+import core.atomic;
 import core.sync.condition;
 import core.sync.mutex;
 import core.thread.osthread;
+import std.array;
+import std.range;
+import std.traits;
 
 /**
  * Represents the eventual completion (or failure) of an asynchronous operation.
  */
-public class Promise(T) {
+public class Promise(T = void) {
     private {
         State state;
         static if (!is(T == void))
@@ -23,7 +27,98 @@ public class Promise(T) {
         FULFILLED,
         REJECTED,
     }
-    
+
+    public static Promise!(U[]) all(U)(Promise!U[] promises) if (!is(U == void)) {
+        return new Promise!(U[])((resolve, reject) {
+            U[] values = new U[promises.length];
+
+            if (promises.length == 0) {
+                resolve(values);
+                return;
+            }
+
+            shared size_t remaining = promises.length;
+            shared bool done = false;
+            Exception rejection;
+            Mutex mtx = new Mutex();
+
+            /**
+             * Returns: Whether to continue scheduling more promises.
+             */
+            bool schedule(size_t index, Promise!U promise) {
+                if (atomicLoad(done))
+                    return false;
+                promise.then!void((value) {
+                    synchronized(mtx) {
+                        if (done) return;
+                        values[index] = value;
+                        atomicOp!"-="(remaining, 1);
+                        if (remaining == 0)
+                            done = true;
+                        else return;
+                    }
+                    resolve(values);
+                    return;
+                }, (err) {
+                    synchronized(mtx) {
+                        if (done) return;
+                        done = true;
+                        rejection = err;
+                    }
+                    reject(err);
+                    throw err;
+                });
+                return true;
+            }
+
+            foreach (i, p; promises)
+                if (!schedule(i, p))
+                    break;
+        });
+    }
+
+    public static Promise!U all(U)(Promise!U[] promises) if (is(U == void)) {
+        return new Promise!U((resolve, reject) {
+            if (promises.length == 0) {
+                resolve();
+                return;
+            }
+
+            shared size_t remaining = promises.length;
+            shared bool done = false;
+            Mutex mtx = new Mutex();
+
+            /**
+             * Returns: Whether to continue scheduling more promises.
+             */
+            bool schedule(size_t index, Promise!U promise) {
+                promise.then!void(() {
+                    synchronized(mtx) {
+                        if (done) return;
+                        atomicOp!"-="(remaining, 1);
+                        if (remaining == 0)
+                            done = true;
+                        else return;
+                    }
+                    resolve();
+                    return;
+                }, (err) {
+                    synchronized(mtx) {
+                        if (done) return;
+                        done = true;
+                    }
+                    reject(err);
+                    throw err;
+                });
+                return true;
+            }
+
+            foreach (i, p; promises)
+                if (!schedule(i, p))
+                    break;
+        });
+    }
+
     static if (is(T == void)) {
         /**
          * Creates a void Promise that is already resolved.
@@ -121,7 +216,7 @@ public class Promise(T) {
             promise.fulfillmentValue = value;
             return promise;
         }
-        
+
         /**
          * Fulfills the promise with the provided value.
          *
