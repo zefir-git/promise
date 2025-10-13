@@ -4,9 +4,11 @@ import core.thread;
 import core.time;
 import promise;
 import std.exception;
+import std.stdio;
 
 ///  Test basic promise fulfillment with value
 unittest {
+    writeln("Testing basic promise fulfillment with value");
     auto p = new Promise!int((resolve, reject) {
         Thread.sleep(10.msecs);
         resolve(42);
@@ -17,6 +19,7 @@ unittest {
 
 ///  Test basic promise fulfillment with void
 unittest {
+    writeln("Testing basic promise fulfillment with void");
     bool executed = false;
     auto p = new Promise!void((resolve, reject) {
         Thread.sleep(dur!"msecs"(10));
@@ -30,6 +33,7 @@ unittest {
 
 ///  Test basic promise rejection
 unittest {
+    writeln("Testing basic promise rejection");
     auto p = new Promise!int((resolve, reject) {
         Thread.sleep(dur!"msecs"(10));
         reject(new Exception("Test error"));
@@ -40,6 +44,7 @@ unittest {
 
 ///  Test promise rejection with specific error message
 unittest {
+    writeln("Testing promise rejection with specific error message");
     auto p = new Promise!int((resolve, reject) {
         reject(new Exception("Custom error"));
     });
@@ -48,6 +53,7 @@ unittest {
 
 ///  Test executor exception causes rejection
 unittest {
+    writeln("Testing executor exception causes rejection");
     auto p = new Promise!int((resolve, reject) {
         throw new Exception("Executor error");
     });
@@ -62,18 +68,21 @@ unittest {
 
 ///  Test Promise.resolve with value
 unittest {
+    writeln("Testing Promise.resolve with value");
     auto p = Promise!int.resolve(100);
     assert(p.await() == 100);
 }
 
 ///  Test Promise.resolve with void
 unittest {
+    writeln("Testing Promise.resolve with void");
     auto p = Promise!void.resolve();
     p.await(); // Should not throw
 }
 
 ///  Test Promise.reject
 unittest {
+    writeln("Testing Promise.reject");
     auto p = Promise!string.reject(new Exception("Rejected"));
 
     try {
@@ -86,6 +95,7 @@ unittest {
 
 ///  Test then with fulfillment handler (value to value)
 unittest {
+    writeln("Testing then with fulfillment handler (value to value)");
     auto p = new Promise!int((resolve, reject) {
         resolve(10);
     });
@@ -96,6 +106,7 @@ unittest {
 
 ///  Test then with fulfillment handler (value to void)
 unittest {
+    writeln("Testing then with fulfillment handler (value to void)");
     int result = 0;
     auto p = new Promise!int((resolve, reject) {
         resolve(15);
@@ -108,6 +119,7 @@ unittest {
 
 ///  Test then with fulfillment handler (void to value)
 unittest {
+    writeln("Testing then with fulfillment handler (void to value)");
     auto p = new Promise!void((resolve, reject) {
         resolve();
     });
@@ -118,6 +130,7 @@ unittest {
 
 ///  Test then with fulfillment handler (void to void)
 unittest {
+    writeln("Testing then with fulfillment handler (void to void)");
     bool called = false;
     auto p = new Promise!void((resolve, reject) {
         resolve();
@@ -130,6 +143,7 @@ unittest {
 
 ///  Test then with rejection handler
 unittest {
+    writeln("Testing then with rejection handler");
     auto p = new Promise!int((resolve, reject) {
         reject(new Exception("Error"));
     });
@@ -140,6 +154,7 @@ unittest {
 
 ///  Test then with both handlers, fulfillment path
 unittest {
+    writeln("Testing then with both handlers, fulfillment path");
     auto p = new Promise!int((resolve, reject) {
         resolve(5);
     });
@@ -150,6 +165,7 @@ unittest {
 
 ///  Test then with both handlers, rejection path
 unittest {
+    writeln("Testing then with both handlers, rejection path");
     auto p = new Promise!int((resolve, reject) {
         reject(new Exception("Error"));
     });
@@ -160,6 +176,7 @@ unittest {
 
 ///  Test then chain (multiple then calls)
 unittest {
+    writeln("Testing then chain (multiple then calls)");
     auto p = new Promise!int((resolve, reject) {
         resolve(1);
     });
@@ -175,6 +192,7 @@ unittest {
 
 ///  Test then without handler propagates fulfillment
 unittest {
+    writeln("Testing then without handler propagates fulfillment");
     auto p = new Promise!int((resolve, reject) {
         resolve(55);
     });
@@ -185,6 +203,7 @@ unittest {
 
 ///  Test then without handler propagates rejection
 unittest {
+    writeln("Testing then without handler propagates rejection");
     auto p = new Promise!int((resolve, reject) {
         reject(new Exception("Propagated"));
     });
@@ -195,6 +214,7 @@ unittest {
 
 /// / Test catch_ with rejection
 unittest {
+    writeln("Testing catch_ with rejection");
     auto p = new Promise!int((resolve, reject) {
         reject(new Exception("Catch me"));
     });
@@ -205,6 +225,7 @@ unittest {
 
 ///  Test catch_ with fulfillment (no-op)
 unittest {
+    writeln("Testing catch_ with fulfillment (no-op)");
     auto p = new Promise!int((resolve, reject) {
         resolve(50);
     });
@@ -215,6 +236,7 @@ unittest {
 
 ///  Test catch_ can convert exception to value
 unittest {
+    writeln("Testing catch_ can convert exception to value");
     auto p = new Promise!string((resolve, reject) {
         reject(new Exception("Error message"));
     });
@@ -225,6 +247,7 @@ unittest {
 
 ///  Test finally_ with fulfillment
 unittest {
+    writeln("Testing finally_ with fulfillment");
     bool finallyCalled = false;
     auto p = new Promise!int((resolve, reject) {
         resolve(100);
@@ -237,6 +260,7 @@ unittest {
 
 ///  Test finally_ with rejection
 unittest {
+    writeln("Testing finally_ with rejection");
     bool finallyCalled = false;
     auto p = new Promise!int((resolve, reject) {
         reject(new Exception("Finally test"));
@@ -249,6 +273,7 @@ unittest {
 
 ///  Test finally_ with void promise fulfillment
 unittest {
+    writeln("Testing finally_ with void promise fulfillment");
     bool finallyCalled = false;
     auto p = new Promise!void((resolve, reject) {
         resolve();
@@ -261,6 +286,7 @@ unittest {
 
 ///  Test finally_ with void promise rejection
 unittest {
+    writeln("Testing finally_ with void promise rejection");
     bool finallyCalled = false;
     auto p = new Promise!void((resolve, reject) {
         reject(new Exception("Void finally"));
@@ -273,6 +299,7 @@ unittest {
 
 ///  Test finally_ exception overrides original result
 unittest {
+    writeln("Testing finally_ exception overrides original result");
     auto p = new Promise!int((resolve, reject) {
         resolve(50);
     });
@@ -289,6 +316,7 @@ unittest {
 
 ///  Test multiple await on same promise
 unittest {
+    writeln("Testing multiple await on same promise");
     auto p = new Promise!int((resolve, reject) {
         Thread.sleep(dur!"msecs"(10));
         resolve(42);
@@ -301,6 +329,7 @@ unittest {
 
 ///  Test resolve called multiple times (only first counts)
 unittest {
+    writeln("Testing resolve called multiple times (only first counts)");
     auto p = new Promise!int((resolve, reject) {
         resolve(1);
         resolve(2);
@@ -312,6 +341,7 @@ unittest {
 
 ///  Test reject called multiple times (only first counts)
 unittest {
+    writeln("Testing reject called multiple times (only first counts)");
     auto p = new Promise!int((resolve, reject) {
         reject(new Exception("First"));
         reject(new Exception("Second"));
@@ -327,6 +357,7 @@ unittest {
 
 ///  Test resolve then reject (resolve wins)
 unittest {
+    writeln("Testing resolve then reject (resolve wins)");
     auto p = new Promise!int((resolve, reject) {
         resolve(100);
         reject(new Exception("Should be ignored"));
@@ -337,6 +368,7 @@ unittest {
 
 ///  Test reject then resolve (reject wins)
 unittest {
+    writeln("Testing reject then resolve (reject wins)");
     auto p = new Promise!int((resolve, reject) {
         reject(new Exception("First"));
         resolve(200);
@@ -347,6 +379,7 @@ unittest {
 
 ///  Test promise with string type
 unittest {
+    writeln("Testing promise with string type");
     auto p = new Promise!string((resolve, reject) {
         resolve("Hello, World!");
     });
@@ -356,6 +389,7 @@ unittest {
 
 ///  Test promise with custom struct
 unittest {
+    writeln("Testing promise with custom struct");
     struct Point {
         int x, y;
     }
@@ -371,6 +405,7 @@ unittest {
 
 ///  Test promise chain with type transformations
 unittest {
+    writeln("Testing promise chain with type transformations");
     auto p = new Promise!int((resolve, reject) {
         resolve(42);
     });
@@ -385,6 +420,7 @@ unittest {
 
 ///  Test then handler throwing exception
 unittest {
+    writeln("Testing then handler throwing exception");
     auto p = new Promise!int((resolve, reject) {
         resolve(10);
     });
@@ -398,6 +434,7 @@ unittest {
 
 ///  Test catch_ handler throwing exception
 unittest {
+    writeln("Testing catch_ handler throwing exception");
     auto p = new Promise!int((resolve, reject) {
         reject(new Exception("Original"));
     });
@@ -416,6 +453,7 @@ unittest {
 
 ///  Test rejection handler with void return type
 unittest {
+    writeln("Testing rejection handler with void return type");
     bool handlerCalled = false;
     auto p = new Promise!int((resolve, reject) {
         reject(new Exception("Error"));
@@ -428,6 +466,7 @@ unittest {
 
 ///  Test complex chain with mixed success and error handling
 unittest {
+    writeln("Testing complex chain with mixed success and error handling");
     auto p = new Promise!int((resolve, reject) {
         resolve(10);
     });
@@ -447,6 +486,7 @@ unittest {
 
 ///  Test await blocks until promise settles
 unittest {
+    writeln("Testing await blocks until promise settles");
     import std.datetime.stopwatch : AutoStart, StopWatch;
 
     auto sw = StopWatch(AutoStart.yes);
@@ -464,6 +504,7 @@ unittest {
 
 ///  Test concurrent promises
 unittest {
+    writeln("Testing concurrent promises");
     auto p1 = new Promise!int((resolve, reject) {
         Thread.sleep(dur!"msecs"(20));
         resolve(1);
@@ -490,12 +531,14 @@ unittest {
 
 ///  Test Promise.resolve with already resolved promise
 unittest {
+    writeln("Testing Promise.resolve with already resolved promise");
     auto p1 = Promise!int.resolve(42);
     assert(p1.await() == 42);
 }
 
 ///  Test void promise with then returning value
 unittest {
+    writeln("Testing void promise with then returning value");
     auto p = Promise!void.resolve();
     auto p2 = p.then!string(() => "converted");
     assert(p2.await() == "converted");
@@ -503,6 +546,7 @@ unittest {
 
 ///  Test long promise chain
 unittest {
+    writeln("Testing long promise chain");
     auto p = Promise!int.resolve(1);
 
     foreach (i; 0..10) {
@@ -514,6 +558,7 @@ unittest {
 
 ///  Test error propagation through long chain
 unittest {
+    writeln("Testing error propagation through long chain");
     auto p = new Promise!int((resolve, reject) {
         reject(new Exception("Initial error"));
     });
@@ -528,6 +573,7 @@ unittest {
 
 ///  Test recovery in middle of chain
 unittest {
+    writeln("Testing recovery in middle of chain");
     auto p = new Promise!int((resolve, reject) {
         reject(new Exception("Error"));
     });
@@ -542,6 +588,7 @@ unittest {
 
 ///  Test immediate resolution
 unittest {
+    writeln("Testing immediate resolution");
     auto p = new Promise!int((resolve, reject) {
         resolve(999);
     });
@@ -551,6 +598,7 @@ unittest {
 
 ///  Test immediate rejection
 unittest {
+    writeln("Testing immediate rejection");
     auto p = new Promise!int((resolve, reject) {
         reject(new Exception("Immediate"));
     });
@@ -560,6 +608,7 @@ unittest {
 
 ///  Test nested promise execution
 unittest {
+    writeln("Testing nested promise execution");
     auto outer = new Promise!int((outerResolve, outerReject) {
         auto inner = new Promise!int((innerResolve, innerReject) {
             innerResolve(42);
@@ -572,6 +621,7 @@ unittest {
 
 ///  Test promise with float type
 unittest {
+    writeln("Testing promise with float type");
     auto p = new Promise!double((resolve, reject) {
         resolve(3.14159);
     });
@@ -582,6 +632,7 @@ unittest {
 
 ///  Test promise with array type
 unittest {
+    writeln("Testing promise with array type");
     auto p = new Promise!(int[])((resolve, reject) {
         resolve([1, 2, 3, 4, 5]);
     });
@@ -593,6 +644,7 @@ unittest {
 
 ///  Test exception with empty message
 unittest {
+    writeln("Testing exception with empty message");
     auto p = new Promise!int((resolve, reject) {
         reject(new Exception(""));
     });
