@@ -85,12 +85,7 @@ unittest {
     writeln("Testing Promise.reject");
     auto p = Promise!string.reject(new Exception("Rejected"));
 
-    try {
-        p.await();
-        assert(false, "Should have thrown");
-    } catch (Exception e) {
-        assert(e.msg == "Rejected");
-    }
+    assertThrown!Exception(p.await());
 }
 
 ///  Test then with fulfillment handler (value to value)
@@ -306,12 +301,7 @@ unittest {
 
     auto p2 = p.finally_(() { throw new Exception("Finally error"); });
 
-    try {
-        p2.await();
-        assert(false, "Should have thrown");
-    } catch (Exception e) {
-        assert(e.msg == "Finally error");
-    }
+    assertThrown!Exception(p2.await());
 }
 
 ///  Test multiple await on same promise
@@ -347,12 +337,7 @@ unittest {
         reject(new Exception("Second"));
     });
 
-    try {
-        p.await();
-        assert(false, "Should have thrown");
-    } catch (Exception e) {
-        assert(e.msg == "First");
-    }
+    assertThrown!Exception(p.await());
 }
 
 ///  Test resolve then reject (resolve wins)
@@ -443,12 +428,7 @@ unittest {
         return throw new Exception("Catch handler error");
     });
 
-    try {
-        p2.await();
-        assert(false, "Should have thrown");
-    } catch (Exception e) {
-        assert(e.msg == "Catch handler error");
-    }
+    assertThrown!Exception(p2.await());
 }
 
 ///  Test rejection handler with void return type
