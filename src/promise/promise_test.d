@@ -631,3 +631,281 @@ unittest {
 
     assertThrown!Exception(p.await());
 }
+
+/// Test Promise.all with empty range
+unittest {
+    writeln("Testing Promise.all with empty range");
+    Promise!int[] promises = [];
+    auto p = Promise!().all!int(promises);
+    auto result = p.await();
+    assert(result.length == 0);
+}
+
+/// Test Promise.all with single promise
+unittest {
+    writeln("Testing Promise.all with single promise");
+    auto promises = [
+        Promise!int.resolve(42)
+    ];
+    auto p = Promise!().all!int(promises);
+    auto result = p.await();
+    assert(result.length == 1);
+    assert(result[0] == 42);
+}
+
+/// Test Promise.all with multiple fulfilled promises
+unittest {
+    writeln("Testing Promise.all with multiple fulfilled promises");
+    auto promises = [
+        new Promise!int((resolve, reject) {
+            Thread.sleep(dur!"msecs"(10));
+            resolve(1);
+        }),
+        new Promise!int((resolve, reject) {
+            Thread.sleep(dur!"msecs"(5));
+            resolve(2);
+        }),
+        new Promise!int((resolve, reject) {
+            Thread.sleep(dur!"msecs"(15));
+            resolve(3);
+        })
+    ];
+    
+    auto p = Promise!().all!int(promises);
+    auto result = p.await();
+    
+    assert(result.length == 3);
+    assert(result[0] == 1);
+    assert(result[1] == 2);
+    assert(result[2] == 3);
+}
+
+/// Test Promise.all maintains order
+unittest {
+    writeln("Testing Promise.all maintains order");
+    auto promises = [
+        new Promise!int((resolve, reject) {
+            Thread.sleep(dur!"msecs"(30));
+            resolve(100);
+        }),
+        new Promise!int((resolve, reject) {
+            Thread.sleep(dur!"msecs"(10));
+            resolve(200);
+        }),
+        new Promise!int((resolve, reject) {
+            Thread.sleep(dur!"msecs"(20));
+            resolve(300);
+        })
+    ];
+    
+    auto p = Promise!().all!int(promises);
+    auto result = p.await();
+    
+    assert(result[0] == 100);
+    assert(result[1] == 200);
+    assert(result[2] == 300);
+}
+
+/// Test Promise.all rejects if any promise rejects
+unittest {
+    writeln("Testing Promise.all rejects if any promise rejects");
+    auto promises = [
+        Promise!int.resolve(1),
+        new Promise!int((resolve, reject) {
+            Thread.sleep(dur!"msecs"(10));
+            reject(new Exception("Failed"));
+        }),
+        Promise!int.resolve(3)
+    ];
+    
+    auto p = Promise!().all!int(promises);
+    
+    assertThrown!Exception(p.await());
+}
+
+/// Test Promise.all rejects with first rejection
+unittest {
+    writeln("Testing Promise.all rejects with first rejection");
+    auto promises = [
+        new Promise!int((resolve, reject) {
+            Thread.sleep(dur!"msecs"(20));
+            reject(new Exception("Second"));
+        }),
+        new Promise!int((resolve, reject) {
+            Thread.sleep(dur!"msecs"(10));
+            reject(new Exception("First"));
+        }),
+        Promise!int.resolve(3)
+    ];
+    
+    auto p = Promise!().all!int(promises);
+    
+    assertThrown!Exception(p.await());
+}
+
+/// Test Promise.all with mix of immediate and delayed promises
+unittest {
+    writeln("Testing Promise.all with mix of immediate and delayed promises");
+    auto promises = [
+        Promise!int.resolve(10),
+        new Promise!int((resolve, reject) {
+            Thread.sleep(dur!"msecs"(10));
+            resolve(20);
+        }),
+        Promise!int.resolve(30)
+    ];
+    
+    auto p = Promise!().all!int(promises);
+    auto result = p.await();
+    
+    assert(result[0] == 10);
+    assert(result[1] == 20);
+    assert(result[2] == 30);
+}
+
+/// Test Promise.all with string type
+unittest {
+    writeln("Testing Promise.all with string type");
+    auto promises = [
+        Promise!string.resolve("Hello"),
+        Promise!string.resolve("World"),
+        Promise!string.resolve("!")
+    ];
+    
+    auto p = Promise!().all!string(promises);
+    auto result = p.await();
+    
+    assert(result[0] == "Hello");
+    assert(result[1] == "World");
+    assert(result[2] == "!");
+}
+
+/// Test Promise.all void with empty range
+unittest {
+    writeln("Testing Promise.all void with empty range");
+    Promise!void[] promises = [];
+    auto p = Promise!().all!void(promises);
+    p.await();
+}
+
+/// Test Promise.all void with single promise
+unittest {
+    writeln("Testing Promise.all void with single promise");
+    auto promises = [
+        Promise!void.resolve()
+    ];
+    auto p = Promise!().all!void(promises);
+    p.await();
+}
+
+/// Test Promise.all void with multiple fulfilled promises
+unittest {
+    writeln("Testing Promise.all void with multiple fulfilled promises");
+    bool flag1 = false;
+    bool flag2 = false;
+    bool flag3 = false;
+    
+    auto promises = [
+        new Promise!void((resolve, reject) {
+            Thread.sleep(dur!"msecs"(10));
+            flag1 = true;
+            resolve();
+        }),
+        new Promise!void((resolve, reject) {
+            Thread.sleep(dur!"msecs"(5));
+            flag2 = true;
+            resolve();
+        }),
+        new Promise!void((resolve, reject) {
+            Thread.sleep(dur!"msecs"(15));
+            flag3 = true;
+            resolve();
+        })
+    ];
+    
+    auto p = Promise!().all!void(promises);
+    p.await();
+    
+    assert(flag1);
+    assert(flag2);
+    assert(flag3);
+}
+
+/// Test Promise.all void rejects if any promise rejects
+unittest {
+    writeln("Testing Promise.all void rejects if any promise rejects");
+    auto promises = [
+        Promise!void.resolve(),
+        new Promise!void((resolve, reject) {
+            Thread.sleep(dur!"msecs"(10));
+            reject(new Exception("Void failed"));
+        }),
+        Promise!void.resolve()
+    ];
+    
+    auto p = Promise!().all!void(promises);
+    
+    assertThrown!Exception(p.await());
+}
+
+/// Test Promise.all void with mix of immediate and delayed promises
+unittest {
+    writeln("Testing Promise.all void with mix of immediate and delayed promises");
+    bool delayed = false;
+    
+    auto promises = [
+        Promise!void.resolve(),
+        new Promise!void((resolve, reject) {
+            Thread.sleep(dur!"msecs"(10));
+            delayed = true;
+            resolve();
+        }),
+        Promise!void.resolve()
+    ];
+    
+    auto p = Promise!().all!void(promises);
+    p.await();
+    
+    assert(delayed);
+}
+
+/// Test Promise.all with large number of promises
+unittest {
+    writeln("Testing Promise.all with large number of promises");
+    Promise!int[] promises;
+    foreach (i; 0..200) {
+        promises ~= Promise!int.resolve(cast(int)i);
+    }
+    
+    auto p = Promise!().all!int(promises);
+    auto result = p.await();
+    
+    assert(result.length == 200);
+    foreach (i; 0..200) {
+        assert(result[i] == i);
+    }
+}
+
+/// Test Promise.all doesn't wait for remaining promises after rejection
+unittest {
+    writeln("Testing Promise.all doesn't wait for remaining promises after rejection");
+    import std.datetime.stopwatch : AutoStart, StopWatch;
+    
+    auto promises = [
+        new Promise!int((resolve, reject) {
+            Thread.sleep(dur!"msecs"(10));
+            reject(new Exception("Fast fail"));
+        }),
+        new Promise!int((resolve, reject) {
+            Thread.sleep(dur!"msecs"(100));
+            resolve(2);
+        })
+    ];
+    
+    auto sw = StopWatch(AutoStart.yes);
+    auto p = Promise!().all!int(promises);
+    
+    assertThrown!Exception(p.await());
+    sw.stop();
+    assert(sw.peek().total!"msecs" < 80);
+}
