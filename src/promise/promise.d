@@ -349,6 +349,43 @@ public class Promise(T = void) {
         task.executeInNewThread();
     }
 
+    /**
+     * Creates a new Promise instance.
+     *
+     * Params:
+     *   executor = Delegate to be executed asynchronously. Its return value, if any, will be used to resolve the
+     *              Promise. Any exception thrown inside the `executor` will cause the Promise to be rejected with that
+     *              exception as reason.
+     */
+    public this(T delegate() executor) {
+        state = State.PENDING;
+        mutex = new Mutex();
+        condition = new Condition(mutex);
+
+        Resolve resolve;
+        static if (is(T == void))
+            resolve = () => this._resolve();
+        else
+            resolve = (value) => this._resolve(value);
+
+        Reject reject = (reason) => this._reject(reason);
+
+        auto task = task({
+            static if (is(T == void))
+                try {
+                    executor();
+                    resolve();
+                }
+                catch (Exception e)
+                    reject(e);
+            else try
+                resolve(executor());
+            catch (Exception e)
+                reject(e);
+        });
+        task.executeInNewThread();
+    }
+
     private this() {}
 
     /**

@@ -909,3 +909,40 @@ unittest {
     sw.stop();
     assert(sw.peek().total!"msecs" < 80);
 }
+
+///  Test basic promise fulfillment by returning value in executor
+unittest {
+    writeln("Testing basic promise fulfillment by returning value in executor");
+    auto p = new Promise!int(() {
+        Thread.sleep(10.msecs);
+        return 42;
+    });
+
+    assert(p.await() == 42);
+}
+
+///  Test basic promise rejection by throwing exception in executor
+unittest {
+    writeln("Testing basic promise fulfillment by throwing exception in executor");
+    auto p = new Promise!int(() {
+        Thread.sleep(10.msecs);
+        throw new Exception("Rejected");
+        return 42;
+    });
+
+    assertThrown!Exception(p.await());
+}
+
+///  Test basic void promise fulfillment without resolve/reject in executor
+unittest {
+    writeln("Testing basic void promise fulfillment without resolve/reject in executor");
+    auto a = true;
+    auto p = new Promise!void(() {
+        Thread.sleep(10.msecs);
+        a = false;
+        return;
+    });
+    assert(a);
+    p.await();
+    assert(!a);
+}
