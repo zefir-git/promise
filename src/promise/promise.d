@@ -3,7 +3,7 @@ module promise;
 import core.atomic;
 import core.sync.condition;
 import core.sync.mutex;
-import core.thread.osthread;
+import std.parallelism;
 import std.array;
 import std.range;
 import std.traits;
@@ -19,7 +19,6 @@ public class Promise(T = void) {
         Exception rejectionReason;
         Mutex mutex;
         Condition condition;
-        Thread executorThread;
     }
 
     private static enum State {
@@ -339,7 +338,7 @@ public class Promise(T = void) {
 
         Reject reject = (reason) => this._reject(reason);
 
-        executorThread = new Thread(() {
+        auto task = task({
             try {
                 executor(resolve, reject);
             }
@@ -347,7 +346,7 @@ public class Promise(T = void) {
                 reject(e);
             }
         });
-        executorThread.start();
+        task.executeInNewThread();
     }
 
     private this() {}
