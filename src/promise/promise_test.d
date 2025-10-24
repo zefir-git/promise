@@ -58,12 +58,7 @@ unittest {
         throw new Exception("Executor error");
     });
 
-    try {
-        p.await();
-        assert(false, "Should have thrown");
-    } catch (Exception e) {
-        assert(e.msg == "Executor error");
-    }
+    assertThrown!Exception(p.await());
 }
 
 ///  Test Promise.resolve with value
