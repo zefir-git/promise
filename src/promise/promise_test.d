@@ -670,10 +670,10 @@ unittest {
             resolve(3);
         })
     ];
-    
+
     auto p = Promise!().all!int(promises);
     auto result = p.await();
-    
+
     assert(result.length == 3);
     assert(result[0] == 1);
     assert(result[1] == 2);
@@ -697,10 +697,10 @@ unittest {
             resolve(300);
         })
     ];
-    
+
     auto p = Promise!().all!int(promises);
     auto result = p.await();
-    
+
     assert(result[0] == 100);
     assert(result[1] == 200);
     assert(result[2] == 300);
@@ -717,9 +717,9 @@ unittest {
         }),
         Promise!int.resolve(3)
     ];
-    
+
     auto p = Promise!().all!int(promises);
-    
+
     assertThrown!Exception(p.await());
 }
 
@@ -737,9 +737,9 @@ unittest {
         }),
         Promise!int.resolve(3)
     ];
-    
+
     auto p = Promise!().all!int(promises);
-    
+
     assertThrown!Exception(p.await());
 }
 
@@ -754,10 +754,10 @@ unittest {
         }),
         Promise!int.resolve(30)
     ];
-    
+
     auto p = Promise!().all!int(promises);
     auto result = p.await();
-    
+
     assert(result[0] == 10);
     assert(result[1] == 20);
     assert(result[2] == 30);
@@ -771,10 +771,10 @@ unittest {
         Promise!string.resolve("World"),
         Promise!string.resolve("!")
     ];
-    
+
     auto p = Promise!().all!string(promises);
     auto result = p.await();
-    
+
     assert(result[0] == "Hello");
     assert(result[1] == "World");
     assert(result[2] == "!");
@@ -804,7 +804,7 @@ unittest {
     bool flag1 = false;
     bool flag2 = false;
     bool flag3 = false;
-    
+
     auto promises = [
         new Promise!void((resolve, reject) {
             Thread.sleep(dur!"msecs"(10));
@@ -822,10 +822,10 @@ unittest {
             resolve();
         })
     ];
-    
+
     auto p = Promise!().all!void(promises);
     p.await();
-    
+
     assert(flag1);
     assert(flag2);
     assert(flag3);
@@ -842,9 +842,9 @@ unittest {
         }),
         Promise!void.resolve()
     ];
-    
+
     auto p = Promise!().all!void(promises);
-    
+
     assertThrown!Exception(p.await());
 }
 
@@ -852,7 +852,7 @@ unittest {
 unittest {
     writeln("Testing Promise.all void with mix of immediate and delayed promises");
     bool delayed = false;
-    
+
     auto promises = [
         Promise!void.resolve(),
         new Promise!void((resolve, reject) {
@@ -862,10 +862,10 @@ unittest {
         }),
         Promise!void.resolve()
     ];
-    
+
     auto p = Promise!().all!void(promises);
     p.await();
-    
+
     assert(delayed);
 }
 
@@ -876,10 +876,10 @@ unittest {
     foreach (i; 0..200) {
         promises ~= Promise!int.resolve(cast(int)i);
     }
-    
+
     auto p = Promise!().all!int(promises);
     auto result = p.await();
-    
+
     assert(result.length == 200);
     foreach (i; 0..200) {
         assert(result[i] == i);
@@ -890,7 +890,7 @@ unittest {
 unittest {
     writeln("Testing Promise.all doesn't wait for remaining promises after rejection");
     import std.datetime.stopwatch : AutoStart, StopWatch;
-    
+
     auto promises = [
         new Promise!int((resolve, reject) {
             Thread.sleep(dur!"msecs"(10));
@@ -901,10 +901,10 @@ unittest {
             resolve(2);
         })
     ];
-    
+
     auto sw = StopWatch(AutoStart.yes);
     auto p = Promise!().all!int(promises);
-    
+
     assertThrown!Exception(p.await());
     sw.stop();
     assert(sw.peek().total!"msecs" < 80);
