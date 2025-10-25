@@ -48,8 +48,6 @@ public class Promise(T = void) {
 
             shared size_t remaining = promises.length;
             shared bool done = false;
-            Exception rejection;
-            Mutex mtx = new Mutex();
 
             /**
              * Returns: Whether to continue scheduling more promises.
@@ -58,24 +56,15 @@ public class Promise(T = void) {
                 if (atomicLoad(done))
                     return false;
                 promise.then!void((value) {
-                    synchronized(mtx) {
-                        if (done) return;
-                        values[index] = value;
-                        atomicOp!"-="(remaining, 1);
-                        if (remaining == 0)
-                            done = true;
-                        else return;
+                    values[index] = value;
+                    if (atomicOp!"-="(remaining, 1) == 0 && cas(&done, false, true)) {
+                        resolve(values);
                     }
-                    resolve(values);
-                    return;
                 }, (err) {
-                    synchronized(mtx) {
-                        if (done) return;
-                        done = true;
-                        rejection = err;
+                    if (cas(&done, false, true)) {
+                        reject(err);
+                        throw err;
                     }
-                    reject(err);
-                    throw err;
                 });
                 return true;
             }
@@ -104,7 +93,6 @@ public class Promise(T = void) {
 
             shared size_t remaining = promises.length;
             shared bool done = false;
-            Mutex mtx = new Mutex();
 
             /**
              * Returns: Whether to continue scheduling more promises.
@@ -113,22 +101,13 @@ public class Promise(T = void) {
                 if (atomicLoad(done))
                     return false;
                 promise.then!void(() {
-                    synchronized(mtx) {
-                        if (done) return;
-                        atomicOp!"-="(remaining, 1);
-                        if (remaining == 0)
-                            done = true;
-                        else return;
-                    }
-                    resolve();
-                    return;
+                    if (atomicOp!"-="(remaining, 1) == 0 && cas(&done, false, true))
+                        resolve();
                 }, (err) {
-                    synchronized(mtx) {
-                        if (done) return;
-                        done = true;
+                    if (cas(&done, false, true)) {
+                        reject(err);
+                        throw err;
                     }
-                    reject(err);
-                    throw err;
                 });
                 return true;
             }
@@ -155,7 +134,7 @@ public class Promise(T = void) {
             bool schedule(Promise!T promise) {
                 if (atomicLoad(done))
                     return false;
-            
+
                 // settled promises are checked on this promise thread to avoid racing
                 if (promise.state != State.PENDING) {
                     if (cas(&done, false, true)) {
