@@ -27,6 +27,16 @@ public class Promise(T = void) {
         REJECTED,
     }
 
+    /**
+     * Creates a Promise that fulfills when all of the provided Promises have been fulfilled, or rejects as soon as any
+     * of them reject.
+     *
+     * Params:
+     *   promises = Array of Promises to observe.
+     * Returns: A Promise that fulfills with an array containing the fulfillment values of all input Promises, in the
+     *          same order as provided. If any input Promise rejects, the returned Promise rejects immediately with that
+     *          rejection reason.
+     */
     public static Promise!(U[]) all(U)(Promise!U[] promises) if (!is(U == void)) {
         return new Promise!(U[])((resolve, reject) {
             U[] values = new U[promises.length];
@@ -76,6 +86,15 @@ public class Promise(T = void) {
         });
     }
 
+    /**
+     * Creates a Promise that fulfills when all of the provided Promises have been fulfilled, or rejects as soon as any
+     * of them reject.
+     *
+     * Params:
+     *   promises = Array of Promises to observe.
+     * Returns: A Promise that fulfills when all input promises are fulfilled. If any input Promise rejects, the
+     *          returned Promise rejects immediately with that rejection reason.
+     */
     public static Promise!U all(U)(Promise!U[] promises) if (is(U == void)) {
         return new Promise!U((resolve, reject) {
             if (promises.length == 0) {
