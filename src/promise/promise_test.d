@@ -2,9 +2,10 @@ module promise_test;
 
 import core.thread;
 import core.time;
-import promise;
 import std.exception;
 import std.stdio;
+
+import promise;
 
 ///  Test basic promise fulfillment with value
 unittest {
