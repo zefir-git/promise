@@ -153,6 +153,9 @@ public class Promise(T = void) {
             shared bool done = false;
 
             bool schedule(Promise!T promise) {
+                if (atomicLoad(done))
+                    return false;
+            
                 // settled promises are checked on this promise thread to avoid racing
                 if (promise.state != State.PENDING) {
                     if (cas(&done, false, true)) {
@@ -186,7 +189,7 @@ public class Promise(T = void) {
                         reject(e);
                 });
 
-                return !done;
+                return true;
             }
 
             foreach (p; promises)
