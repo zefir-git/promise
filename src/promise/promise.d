@@ -128,7 +128,7 @@ public class Promise(T = void) {
                     reject(err);
                     throw err;
                 });
-                return true;
+                return !done;
             }
 
             foreach (i, p; promises)
