@@ -33,7 +33,7 @@ public class Promise(T = void) {
      *
      * Params:
      *   promises = Array of Promises to observe.
-     * Returns: A Promise that fulfills with an array containing the fulfillment values of all input Promises, in the
+     * Returns: Promise that fulfills with an array containing the fulfillment values of all input Promises, in the
      *          same order as provided. If any input Promise rejects, the returned Promise rejects immediately with that
      *          rejection reason.
      */
@@ -92,7 +92,7 @@ public class Promise(T = void) {
      *
      * Params:
      *   promises = Array of Promises to observe.
-     * Returns: A Promise that fulfills when all input promises are fulfilled. If any input Promise rejects, the
+     * Returns: Promise that fulfills when all input promises are fulfilled. If any input Promise rejects, the
      *          returned Promise rejects immediately with that rejection reason.
      */
     public static Promise!U all(U)(Promise!U[] promises) if (is(U == void)) {
@@ -135,6 +135,62 @@ public class Promise(T = void) {
 
             foreach (i, p; promises)
                 if (!schedule(i, p))
+                    break;
+        });
+    }
+
+    /**
+     * Creates a Promise that fulfills or rejects with the outcome of the first promise to settle.
+     *
+     * Params:
+     *   promises = Array of Promises to observe.
+     * Returns: A Promise that settles with the state of the first promise in the array to settle: it fulfills if that
+     *         promise fulfills, or rejects if that promise rejects. If the array is empty, the returned promise remains
+     *         pending indefinitely.
+     */
+    public static Promise!T race(Promise!T[] promises) {
+        return new Promise!T((resolve, reject) {
+            shared bool done = false;
+
+            bool schedule(Promise!T promise) {
+                // settled promises are checked on this promise thread to avoid racing
+                if (promise.state != State.PENDING) {
+                    if (cas(&done, false, true)) {
+                        try {
+                            static if (is(T == void)) {
+                                promise.await();
+                                resolve();
+                            }
+                            else
+                                resolve(promise.await());
+                        }
+                        catch (Exception e)
+                            reject(e);
+                    }
+                    return false;
+                }
+
+                static if (is(T == void)) promise.then!void(() {
+                    if (cas(&done, false, true))
+                        resolve();
+                }).catch_((Exception e) {
+                    if (cas(&done, false, true))
+                        reject(e);
+                });
+
+                else promise.then!void((T value) {
+                    if (cas(&done, false, true))
+                        resolve(value);
+                }).catch_((Exception e) {
+                    if (cas(&done, false, true))
+                        reject(e);
+                });
+
+                return !done;
+            }
+
+            foreach (p; promises)
+                if (!schedule(p))
                     break;
         });
     }
@@ -492,5 +548,27 @@ public class Promise(T = void) {
             rejectionReason = reason;
             condition.notifyAll();
         }
+    }
+}
+
+/**
+ * Represents multiple exceptions as a single object.
+ */
+public class AggregateException : Exception {
+    /**
+     * Array representing the exceptions that were aggregated.
+     */
+    public Exception[] exceptions;
+
+    /**
+     * Constructs a new AggregateException.
+     *
+     * Params:
+     *   exceptions = Exceptions to include in this aggregate.
+     *   message    = Message describing this aggregate exception.
+     */
+    public this(Exception[] exceptions, string message) {
+        super(message);
+        this.exceptions = exceptions;
     }
 }

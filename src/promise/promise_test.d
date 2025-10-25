@@ -2,7 +2,10 @@ module promise_test;
 
 import core.thread;
 import core.time;
+import std.conv;
 import std.exception;
+import std.parallelism;
+import std.range;
 import std.stdio;
 
 import promise;
@@ -941,4 +944,100 @@ unittest {
     assert(a);
     p.await();
     assert(!a);
+}
+
+/// Test Promise.race resolves with first settled promise
+unittest {
+    writeln("Testing Promise.race resolves with first settled promise");
+    foreach (_; parallel(iota(0, 100))) {
+        auto p = Promise!int.race([
+            new Promise!int((resolve, reject) {
+                Thread.sleep(dur!"msecs"(30));
+                resolve(1);
+            }),
+            new Promise!int((resolve, reject) {
+                Thread.sleep(dur!"msecs"(10));
+                resolve(2);
+            }),
+            new Promise!int((resolve, reject) {
+                Thread.sleep(dur!"msecs"(20));
+                resolve(3);
+            })
+        ]);
+        assert(p.await() == 2);
+    }
+}
+
+/// Test Promise.race rejects with first settled promise
+unittest {
+    writeln("Testing Promise.race rejects with first settled promise");
+    foreach (_; parallel(iota(0, 100))) {
+        auto p = Promise!void.race([
+            new Promise!void((resolve, reject) {
+                Thread.sleep(dur!"msecs"(30));
+                reject(new Exception("One"));
+            }),
+            new Promise!void((resolve, reject) {
+                Thread.sleep(dur!"msecs"(10));
+                reject(new Exception("Two"));
+            }),
+            new Promise!void((resolve, reject) {
+                Thread.sleep(dur!"msecs"(20));
+                reject(new Exception("Three"));
+            })
+        ]);
+        assert(collectExceptionMsg(p.await()) == "Two");
+    }
+}
+
+/// Test Promise.race with all pre-resolved promises
+unittest {
+    writeln("Testing Promise.race with all pre-resolved promises");
+    foreach (_; parallel(iota(0, 100))) {
+        auto p = Promise!int.race([
+            Promise!int.resolve(1),
+            Promise!int.resolve(2),
+            Promise!int.resolve(3)
+        ]);
+        assert(p.await() == 1);
+    }
+}
+
+/// Test Promise.race with all pre-rejected promises
+unittest {
+    writeln("Testing Promise.race with all pre-rejected promises");
+    foreach (_; parallel(iota(0, 100))) {
+        auto p = Promise!int.race([
+            Promise!int.reject(new Exception("First")),
+            Promise!int.reject(new Exception("Second")),
+            Promise!int.reject(new Exception("Third"))
+        ]);
+        assert(collectExceptionMsg(p.await()) == "First");
+    }
+}
+
+/// Test Promise.race with a mix of pending and fulfilled promises
+unittest {
+    writeln("Testing Promise.race with a mix of pending and fulfilled promises");
+    foreach (_; parallel(iota(0, 100))) {
+        auto resolved = new Promise!int(() {
+            Thread.sleep(dur!"msecs"(5));
+            return 2;
+        });
+        Thread.sleep(dur!"msecs"(10));
+        auto promises = [
+            new Promise!int(() {
+                Thread.sleep(dur!"msecs"(20));
+                return 1;
+            }),
+            resolved,
+            Promise!int.resolve(3),
+            new Promise!int(() {
+                Thread.sleep(dur!"msecs"(5));
+                return 4;
+            }),
+        ];
+        auto p = Promise!int.race(promises);
+        assert(p.await() == 2);
+    }
 }
