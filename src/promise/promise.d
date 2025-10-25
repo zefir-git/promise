@@ -110,6 +110,8 @@ public class Promise(T = void) {
              * Returns: Whether to continue scheduling more promises.
              */
             bool schedule(size_t index, Promise!U promise) {
+                if (atomicLoad(done))
+                    return false;
                 promise.then!void(() {
                     synchronized(mtx) {
                         if (done) return;
@@ -128,7 +130,7 @@ public class Promise(T = void) {
                     reject(err);
                     throw err;
                 });
-                return !done;
+                return true;
             }
 
             foreach (i, p; promises)
