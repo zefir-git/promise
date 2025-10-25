@@ -1041,3 +1041,95 @@ unittest {
         assert(p.await() == 2);
     }
 }
+
+/// Test Promise.any without any promises
+unittest {
+    writeln("Testing Promise.any without any promises");
+    auto p = Promise!void.any([]);
+    assertThrown!AggregateException(p.await());
+}
+
+/// Test Promise.any resolves with first settled promise
+unittest {
+    writeln("Testing Promise.any resolves with first settled promise");
+    foreach (_; parallel(iota(0, 100))) {
+        auto p = Promise!int.any([
+            new Promise!int((resolve, reject) {
+                Thread.sleep(dur!"msecs"(30));
+                resolve(1);
+            }),
+            new Promise!int((resolve, reject) {
+                Thread.sleep(dur!"msecs"(10));
+                resolve(2);
+            }),
+            new Promise!int((resolve, reject) {
+                Thread.sleep(dur!"msecs"(20));
+                resolve(3);
+            })
+        ]);
+        assert(p.await() == 2);
+    }
+}
+
+/// Test Promise.any with all pre-resolved promises
+unittest {
+    writeln("Testing Promise.any with all pre-resolved promises");
+    foreach (_; parallel(iota(0, 100))) {
+        auto p = Promise!int.race([
+            Promise!int.resolve(1),
+            Promise!int.resolve(2),
+            Promise!int.resolve(3)
+        ]);
+        assert(p.await() == 1);
+    }
+}
+
+/// Test Promise.any with all pre-rejected promises
+unittest {
+    writeln("Testing Promise.any with all pre-rejected promises");
+    foreach (_; parallel(iota(0, 100))) {
+        auto p = Promise!int.any([
+            Promise!int.reject(new Exception("First")),
+            Promise!int.reject(new Exception("Second")),
+            Promise!int.reject(new Exception("Third"))
+        ]);
+        
+        assertThrown!AggregateException(p.await());
+        
+        try p.await();
+        catch (AggregateException aggregate) {
+            assert(aggregate.exceptions.length == 3);
+            assert(aggregate.exceptions[0].msg == "First");
+            assert(aggregate.exceptions[1].msg == "Second");
+            assert(aggregate.exceptions[2].msg == "Third");
+        }
+    }
+}
+
+/// Test Promise.any with a mix of fulfilling and rejecting promises
+unittest {
+    writeln("Testing Promise.any with a mix of fulfilling and rejecting promises");
+    foreach (_; parallel(iota(0, 100))) {
+        auto p = Promise!int.any([
+            new Promise!int(() {
+                Thread.sleep(dur!"msecs"(25));
+                return 1;
+            }),
+            new Promise!int(() {
+                Thread.sleep(dur!"msecs"(10));
+                return throw new Exception("Reject");
+            }),
+            new Promise!int(() {
+                Thread.sleep(dur!"msecs"(25));
+                return throw new Exception("Reject");
+            }),
+            new Promise!int(() {
+                Thread.sleep(dur!"msecs"(20));
+                return 42;
+            }),
+            Promise!int.reject(new Exception("Reject"))
+        ]);
+        
+        assert(p.await() == 42);
+    }
+}

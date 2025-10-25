@@ -118,6 +118,74 @@ public class Promise(T = void) {
         });
     }
 
+    /** 
+     * Creates a Promise that fulfills when any of the provided Promises fulfills, with the fulfillment value of the
+     * first one that does. It rejects when none of the Promises are fulfilled (including when an empty array is
+     * passed), with an `AggregateException` containing the rejection reasons in the order the Promises were provided.
+     *
+     * Params:
+     *   promises = Array of Promises to observe.
+     */
+    public static Promise!T any(Promise!T[] promises) {
+        return new Promise!T((resolve, reject) {
+            if (promises.length == 0)
+                throw new AggregateException([], "No Promise in Promise.any was resolved");
+
+            shared bool done = false;
+            shared size_t remaining = promises.length;
+            Exception[] exceptions = new Exception[promises.length];
+
+            bool schedule(size_t index, Promise!T promise) {
+                if (atomicLoad(done))
+                    return false;
+
+                // settled promises are checked on this promise thread to avoid racing
+                if (promise.state != State.PENDING) {
+                    try {
+                        static if (is(T == void)) {
+                            promise.await();
+                            resolve();
+                        }
+                        else
+                            resolve(promise.await());
+                    }
+                    catch (Exception e) {
+                        import std.stdio;
+                        exceptions[index] = e;
+                        if (atomicOp!"-="(remaining, 1) == 0 && cas(&done, false, true))
+                            reject(new AggregateException(exceptions, "No Promise in Promise.any was resolved"));
+                    }
+                    return true;
+                }
+
+                static if (is(T == void))
+                    promise.then!void(() {
+                        if (cas(&done, false, true))
+                            resolve();
+                    }).catch_((Exception e) {
+                        exceptions[index] = e;
+                        if (atomicOp!"-="(remaining, 1) == 0 && cas(&done, false, true))
+                            reject(new AggregateException(exceptions, "No Promise in Promise.any was resolved"));
+                    });
+                else
+                    promise.then!void((T value) {
+                        if (cas(&done, false, true))
+                            resolve(value);
+                    }).catch_((Exception e) {
+                        exceptions[index] = e;
+                        if (atomicOp!"-="(remaining, 1) == 0 && cas(&done, false, true))
+                            reject(new AggregateException(exceptions, "No Promise in Promise.any was resolved"));
+                    });
+
+                return true;
+            }
+
+            foreach(i, p; promises)
+                if (!schedule(i, p))
+                    break;
+        });
+    }
+
     /**
      * Creates a Promise that fulfills or rejects with the outcome of the first promise to settle.
      *
