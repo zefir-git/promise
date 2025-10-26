@@ -21,7 +21,7 @@ public class Promise(T = void) {
         Condition condition;
     }
 
-    private static enum State {
+    private static const enum State {
         PENDING,
         FULFILLED,
         REJECTED,
