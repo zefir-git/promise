@@ -3,8 +3,8 @@ module promise;
 import core.atomic;
 import core.sync.condition;
 import core.sync.mutex;
-import std.parallelism;
 import std.array;
+import std.parallelism;
 import std.range;
 import std.traits;
 
