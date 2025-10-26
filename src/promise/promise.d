@@ -38,14 +38,10 @@ public class Promise(T = void) {
      *          rejection reason.
      */
     public static Promise!(U[]) all(U)(Promise!U[] promises) if (!is(U == void)) {
+        if (promises.length == 0)
+            return Promise!(U[]).resolve([]);
         return new Promise!(U[])((resolve, reject) {
             U[] values = new U[promises.length];
-
-            if (promises.length == 0) {
-                resolve(values);
-                return;
-            }
-
             shared size_t remaining = promises.length;
             shared bool done = false;
 
@@ -82,12 +78,9 @@ public class Promise(T = void) {
      *          returned Promise rejects immediately with that rejection reason.
      */
     public static Promise!U all(U)(Promise!U[] promises) if (is(U == void)) {
+        if (promises.length == 0)
+            return Promise!void.resolve();
         return new Promise!U((resolve, reject) {
-            if (promises.length == 0) {
-                resolve();
-                return;
-            }
-
             shared size_t remaining = promises.length;
             shared bool done = false;
 
@@ -121,10 +114,9 @@ public class Promise(T = void) {
      *   promises = Array of Promises to observe.
      */
     public static Promise!T any(Promise!T[] promises) {
+        if (promises.length == 0)
+            return Promise!T.reject(new AggregateException([], "No Promise in Promise.any was resolved"));
         return new Promise!T((resolve, reject) {
-            if (promises.length == 0)
-                throw new AggregateException([], "No Promise in Promise.any was resolved");
-
             shared bool done = false;
             shared size_t remaining = promises.length;
             Exception[] exceptions = new Exception[promises.length];
