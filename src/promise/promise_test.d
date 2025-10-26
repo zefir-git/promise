@@ -779,12 +779,11 @@ unittest {
     assert(result[2] == "!");
 }
 
-/// Test Promise.all void with empty range
+/// Test Promise.all with empty array
 unittest {
-    writeln("Testing Promise.all void with empty range");
-    Promise!void[] promises = [];
-    auto p = Promise!().all!void(promises);
-    p.await();
+    writeln("Testing Promise.all with empty array");
+    auto p = Promise!().all!int([]);
+    assert(p.await().length == 0);
 }
 
 /// Test Promise.all void with single promise
@@ -794,7 +793,7 @@ unittest {
         Promise!void.resolve()
     ];
     auto p = Promise!().all!void(promises);
-    p.await();
+    assertNotThrown(p.await());
 }
 
 /// Test Promise.all void with multiple fulfilled promises
@@ -872,15 +871,15 @@ unittest {
 unittest {
     writeln("Testing Promise.all with large number of promises");
     Promise!int[] promises;
-    foreach (i; 0..200) {
-        promises ~= Promise!int.resolve(cast(int)i);
+    foreach (i; 0..1000) {
+        promises ~= Promise!int.resolve(i);
     }
 
     auto p = Promise!().all!int(promises);
     auto result = p.await();
 
-    assert(result.length == 200);
-    foreach (i; 0..200) {
+    assert(result.length == 1000);
+    foreach (i; 0..1000) {
         assert(result[i] == i);
     }
 }
@@ -906,7 +905,7 @@ unittest {
 
     assertThrown!Exception(p.await());
     sw.stop();
-    assert(sw.peek().total!"msecs" < 80);
+    assert(sw.peek().total!"msecs" < 20);
 }
 
 ///  Test basic promise fulfillment by returning value in executor
