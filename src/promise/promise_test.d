@@ -1111,7 +1111,7 @@ unittest {
     foreach (_; parallel(iota(0, 100))) {
         auto p = Promise!int.any([
             new Promise!int(() {
-                Thread.sleep(dur!"msecs"(25));
+                Thread.sleep(dur!"msecs"(30));
                 return 1;
             }),
             new Promise!int(() {
@@ -1119,7 +1119,7 @@ unittest {
                 return throw new Exception("Reject");
             }),
             new Promise!int(() {
-                Thread.sleep(dur!"msecs"(25));
+                Thread.sleep(dur!"msecs"(30));
                 return throw new Exception("Reject");
             }),
             new Promise!int(() {
