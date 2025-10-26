@@ -49,9 +49,6 @@ public class Promise(T = void) {
             shared size_t remaining = promises.length;
             shared bool done = false;
 
-            /**
-             * Returns: Whether to continue scheduling more promises.
-             */
             bool schedule(size_t index, Promise!U promise) {
                 if (atomicLoad(done))
                     return false;
@@ -94,9 +91,6 @@ public class Promise(T = void) {
             shared size_t remaining = promises.length;
             shared bool done = false;
 
-            /**
-             * Returns: Whether to continue scheduling more Promises.
-             */
             bool schedule(size_t index, Promise!U promise) {
                 if (atomicLoad(done))
                     return false;
@@ -118,7 +112,7 @@ public class Promise(T = void) {
         });
     }
 
-    /** 
+    /**
      * Creates a Promise that fulfills when any of the provided Promises fulfills, with the fulfillment value of the
      * first one that does. It rejects when none of the Promises are fulfilled (including when an empty array is
      * passed), with an `AggregateException` containing the rejection reasons in the order the Promises were provided.
