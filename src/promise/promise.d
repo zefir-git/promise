@@ -81,7 +81,7 @@ public class Promise(T = void) {
      *
      * Params:
      *   promises = Array of Promises to observe.
-     * Returns: Promise that fulfills when all input promises are fulfilled. If any input Promise rejects, the
+     * Returns: Promise that fulfills when all input Promises are fulfilled. If any input Promise rejects, the
      *          returned Promise rejects immediately with that rejection reason.
      */
     public static Promise!U all(U)(Promise!U[] promises) if (is(U == void)) {
@@ -95,7 +95,7 @@ public class Promise(T = void) {
             shared bool done = false;
 
             /**
-             * Returns: Whether to continue scheduling more promises.
+             * Returns: Whether to continue scheduling more Promises.
              */
             bool schedule(size_t index, Promise!U promise) {
                 if (atomicLoad(done))
@@ -187,12 +187,12 @@ public class Promise(T = void) {
     }
 
     /**
-     * Creates a Promise that fulfills or rejects with the outcome of the first promise to settle.
+     * Creates a Promise that fulfills or rejects with the outcome of the first Promise to settle.
      *
      * Params:
      *   promises = Array of Promises to observe.
-     * Returns: A Promise that settles with the state of the first promise in the array to settle: it fulfills if that
-     *         promise fulfills, or rejects if that promise rejects. If the array is empty, the returned promise remains
+     * Returns: A Promise that settles with the state of the first Promise in the array to settle: it fulfills if that
+     *         Promise fulfills, or rejects if that Promise rejects. If the array is empty, the returned Promise remains
      *         pending indefinitely.
      */
     public static Promise!T race(Promise!T[] promises) {
@@ -257,7 +257,7 @@ public class Promise(T = void) {
         }
 
         /**
-         * Fulfills the promise.
+         * Fulfills the Promise.
          */
         public alias Resolve = void delegate();
 
@@ -344,10 +344,10 @@ public class Promise(T = void) {
         }
 
         /**
-         * Fulfills the promise with the provided value.
+         * Fulfills the Promise with the provided value.
          *
          * Params:
-         *   value = Value to fulfill the promise with.
+         *   value = Value to fulfill the Promise with.
          */
         public alias Resolve = void delegate(T value);
 
@@ -425,22 +425,22 @@ public class Promise(T = void) {
     }
 
     /**
-     * Rejects the promise.
+     * Rejects the Promise.
      *
      * Params:
-     *   reason = Reason the promise was rejected.
+     *   reason = Reason the Promise was rejected.
      */
     public alias Reject = void delegate(Exception reason);
 
     /**
      * Executes custom code asynchronously that ties an outcome in a callback to a Promise.
      *
-     * The promise can only be settled once. The first call to either `resolve()` or `reject()` settles the promise;
+     * The Promise can only be settled once. The first call to either `resolve()` or `reject()` settles the Promise;
      * subsequent calls to either function are ignored.
      *
      * Params:
-     *   resolve = Function to call to fulfill the promise with a value.
-     *   reject = Function to call to reject the promise with a reason.
+     *   resolve = Function to call to fulfill the Promise with a value.
+     *   reject = Function to call to reject the Promise with a reason.
      */
     public alias Executor = void delegate(Resolve resolve, Reject reject);
 
@@ -556,8 +556,8 @@ public class Promise(T = void) {
      *   onRejected = Delegate to asynchronously execute when this Promise becomes rejected. Its return value becomes
      *                the fulfillment value of the Promise returned by this method. The delegate is called with a
      *                `reason` argument indicating the rejection reason.
-     * Returns: Immediately a new Promise which is pending (regardless of the current promise’s status). If the original
-     *          Promise is rejected, this promise resolves to the value returned by the `onRejected` delegate or rejects
+     * Returns: Immediately a new Promise which is pending (regardless of the current Promise’s status). If the original
+     *          Promise is rejected, this Promise resolves to the value returned by the `onRejected` delegate or rejects
      *          with the reason thrown by it, otherwise it fulfills with the same value as the original Promise.
      */
     public Promise!T catch_(T delegate(Exception) onRejected) {
