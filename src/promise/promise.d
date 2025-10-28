@@ -105,6 +105,47 @@ public class Promise(T = void) {
         });
     }
 
+    /** 
+     * Creates a Promise that fulfills when all of the provided Promises have settled (either fulfilled or rejected).
+     *
+     * Params:
+     *   promises = Array of Promises to observe.
+     * Returns: Promise that fulfills with an array containing the results of all input Promises, in the same order as
+     *          as provided. Each element in the array is either a `PromiseFulfilledResult!T` or
+     *          `PromiseRejectedResult`. The returned Promise never rejects.
+     */
+    public static Promise!(PromiseSettledResult[]) allSettled(Promise!T[] promises) {
+        if (promises.length == 0)
+            return Promise!(PromiseSettledResult[]).resolve([]);
+
+        return new Promise!(PromiseSettledResult[])((resolve, reject) {
+            PromiseSettledResult[] values = new PromiseSettledResult[promises.length];
+            shared size_t remaining = promises.length;
+
+            void schedule(size_t index, Promise!T promise) {
+                static if (is(T == void))
+                    promise.then(() {
+                        values[index] = new PromiseFulfilledResult!void();
+                    });
+                else
+                    promise.then((val) {
+                        values[index] = new PromiseFulfilledResult!T(val);
+                        return val;
+                    });
+                promise.catch_((e) {
+                    values[index] = new PromiseRejectedResult(e);
+                    return throw e;
+                }).finally_(() {
+                    if (atomicOp!"-="(remaining, 1) == 0)
+                        resolve(values);
+                });
+            }
+
+            foreach (i, p; promises)
+                schedule(i, p);
+        });
+    }
+
     /**
      * Creates a Promise that fulfills when any of the provided Promises fulfills, with the fulfillment value of the
      * first one that does. It rejects when none of the Promises are fulfilled (including when an empty array is
@@ -584,6 +625,65 @@ public class Promise(T = void) {
             rejectionReason = reason;
             condition.notifyAll();
         }
+    }
+}
+
+/**
+ * Represents the outcome of a settled Promise.
+ */
+public abstract class PromiseSettledResult {
+    /**
+     * Represents the state of a settled Promise.
+     */
+    public static const enum Status {
+        FULFILLED = Promise!().State.FULFILLED,
+        REJECTED = Promise!().State.REJECTED,
+    }
+
+    /**
+     * State of the settled Promise.
+     */
+    public const PromiseSettledResult.Status status;
+
+    private this(PromiseSettledResult.Status status) {
+        this.status = status;
+    }
+}
+
+/**
+ * Represents the outcome of a fulfilled Promise.
+ */
+public final class PromiseFulfilledResult(T) : PromiseSettledResult {
+    static if (is(T == void))
+        private this() {
+            super(PromiseSettledResult.Status.FULFILLED);
+        }
+
+    else {
+        /**
+         * Fulfillment value of the Promise.
+         */
+        public const T value;
+
+        private this(T value) {
+            super(PromiseSettledResult.Status.FULFILLED);
+            this.value = value;
+        }
+    }
+}
+
+/**
+ * Represents the outcome of a rejected Promise.
+ */
+public final class PromiseRejectedResult : PromiseSettledResult {
+    /**
+     * Rejection reason of the Promise.
+     */
+    public const Exception reason;
+
+    private this(Exception reason) {
+        super(PromiseSettledResult.Status.REJECTED);
+        this.reason = reason;
     }
 }
 

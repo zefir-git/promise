@@ -1015,3 +1015,128 @@ unittest {
         assert(p.await() == 42);
     }
 }
+
+/// Test Promise.allSettled with all fulfilled promises
+unittest {
+    writeln("Testing Promise.allSettled with all fulfilled promises");
+    auto p = Promise!int.allSettled([
+        new Promise!int((resolve, reject) {
+            Thread.sleep(dur!"msecs"(20));
+            resolve(1);
+        }),
+        new Promise!int((resolve, reject) {
+            Thread.sleep(dur!"msecs"(10));
+            resolve(2);
+        }),
+        new Promise!int((resolve, reject) {
+            Thread.sleep(dur!"msecs"(30));
+            resolve(3);
+        })
+    ]);
+    auto results = p.await();
+    assert(results.length == 3);
+    assert(results[0].status == PromiseSettledResult.Status.FULFILLED);
+    assert(results[1].status == PromiseSettledResult.Status.FULFILLED);
+    assert(results[2].status == PromiseSettledResult.Status.FULFILLED);
+    assert((cast(PromiseFulfilledResult!int)results[0]).value == 1);
+    assert((cast(PromiseFulfilledResult!int)results[1]).value == 2);
+    assert((cast(PromiseFulfilledResult!int)results[2]).value == 3);
+}
+
+/// Test Promise.allSettled with all rejected promises
+unittest {
+    writeln("Testing Promise.allSettled with all rejected promises");
+    auto p = Promise!int.allSettled([
+        new Promise!int((resolve, reject) {
+            Thread.sleep(dur!"msecs"(20));
+            reject(new Exception("One"));
+        }),
+        new Promise!int((resolve, reject) {
+            Thread.sleep(dur!"msecs"(10));
+            reject(new Exception("Two"));
+        }),
+        new Promise!int((resolve, reject) {
+            Thread.sleep(dur!"msecs"(30));
+            reject(new Exception("Three"));
+        })
+    ]);
+    auto results = p.await();
+    assert(results.length == 3);
+    assert(results[0].status == PromiseSettledResult.Status.REJECTED);
+    assert(results[1].status == PromiseSettledResult.Status.REJECTED);
+    assert(results[2].status == PromiseSettledResult.Status.REJECTED);
+    assert((cast(PromiseRejectedResult)results[0]).reason.msg == "One");
+    assert((cast(PromiseRejectedResult)results[1]).reason.msg == "Two");
+    assert((cast(PromiseRejectedResult)results[2]).reason.msg == "Three");
+}
+
+/// Test Promise.allSettled with a mix of fulfilled and rejected promises
+unittest {
+    writeln("Testing Promise.allSettled with a mix of fulfilled and rejected promises");
+    auto p = Promise!int.allSettled([
+        new Promise!int((resolve, reject) {
+            Thread.sleep(dur!"msecs"(10));
+            resolve(42);
+        }),
+        new Promise!int((resolve, reject) {
+            Thread.sleep(dur!"msecs"(15));
+            reject(new Exception("Fail"));
+        }),
+        new Promise!int((resolve, reject) {
+            Thread.sleep(dur!"msecs"(5));
+            resolve(7);
+        })
+    ]);
+    auto results = p.await();
+    assert(results.length == 3);
+    assert(results[0].status == PromiseSettledResult.Status.FULFILLED);
+    assert(results[1].status == PromiseSettledResult.Status.REJECTED);
+    assert(results[2].status == PromiseSettledResult.Status.FULFILLED);
+    assert((cast(PromiseFulfilledResult!int)results[0]).value == 42);
+    assert((cast(PromiseRejectedResult)results[1]).reason.msg == "Fail");
+    assert((cast(PromiseFulfilledResult!int)results[2]).value == 7);
+}
+
+/// Test Promise.allSettled with all pre-resolved promises
+unittest {
+    writeln("Testing Promise.allSettled with all pre-resolved promises");
+    auto p = Promise!int.allSettled([
+        Promise!int.resolve(1),
+        Promise!int.resolve(2),
+        Promise!int.resolve(3)
+    ]);
+    auto results = p.await();
+    assert(results.length == 3);
+    foreach (r; results) {
+        assert(r.status == PromiseSettledResult.Status.FULFILLED);
+    }
+    assert((cast(PromiseFulfilledResult!int)results[0]).value == 1);
+    assert((cast(PromiseFulfilledResult!int)results[1]).value == 2);
+    assert((cast(PromiseFulfilledResult!int)results[2]).value == 3);
+}
+
+/// Test Promise.allSettled with all pre-rejected promises
+unittest {
+    writeln("Testing Promise.allSettled with all pre-rejected promises");
+    auto p = Promise!int.allSettled([
+        Promise!int.reject(new Exception("First")),
+        Promise!int.reject(new Exception("Second")),
+        Promise!int.reject(new Exception("Third"))
+    ]);
+    auto results = p.await();
+    assert(results.length == 3);
+    assert(results[0].status == PromiseSettledResult.Status.REJECTED);
+    assert(results[1].status == PromiseSettledResult.Status.REJECTED);
+    assert(results[2].status == PromiseSettledResult.Status.REJECTED);
+    assert((cast(PromiseRejectedResult)results[0]).reason.msg == "First");
+    assert((cast(PromiseRejectedResult)results[1]).reason.msg == "Second");
+    assert((cast(PromiseRejectedResult)results[2]).reason.msg == "Third");
+}
+
+/// Test Promise.allSettled with an empty array
+unittest {
+    writeln("Testing Promise.allSettled with an empty array");
+    auto p = Promise!int.allSettled([]);
+    auto results = p.await();
+    assert(results.length == 0);
+}
