@@ -271,6 +271,22 @@ public class Promise(T = void) {
                     break;
         });
     }
+    
+    /**
+     * Creates a Promise that fulfills with the return value of the provided delegate, or rejects if the delegate throws
+     * an exception.
+     *
+     * Params:
+     *   func = Delegate to call with the arguments provided in `args`.
+     *   args = Arguments to pass to the `func` delegate.
+     * Returns: Promise that fulfills with the value returned by `func`, or rejects with any exception thrown during its
+     *          execution.
+     */
+    public static Promise!T try_(Args...) (T delegate(Args) func, auto ref Args args) {
+        return new Promise!T(() {
+            return func(args);
+        });
+    }
 
     static if (is(T == void)) {
         /**

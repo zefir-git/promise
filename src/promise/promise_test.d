@@ -1140,3 +1140,38 @@ unittest {
     auto results = p.await();
     assert(results.length == 0);
 }
+
+/// Test Promise.try_ fulfills with return value
+unittest {
+    writeln("Testing Promise.try_ fulfills with return value");
+    auto p = Promise!int.try_(() => 42);
+    assert(p.await() == 42);
+}
+
+/// Test Promise.try_ rejects when delegate throws
+unittest {
+    writeln("Testing Promise.try_ rejects when delegate throws");
+    auto p = Promise!int.try_(() {
+        throw new Exception("Failure");
+        return 0;
+    });
+    assert(collectExceptionMsg(p.await()) == "Failure");
+}
+
+/// Test Promise.try_ passes arguments to delegate
+unittest {
+    writeln("Testing Promise.try_ passes arguments to delegate");
+    auto p = Promise!int.try_((int a, int b) => a + b, 2, 3);
+    assert(p.await() == 5);
+}
+
+/// Test Promise.try_ with void delegate
+unittest {
+    writeln("Testing Promise.try_ with void delegate");
+    bool called = false;
+    auto p = Promise!void.try_(() {
+        called = true;
+    });
+    p.await();
+    assert(called);
+}
