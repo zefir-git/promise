@@ -143,11 +143,11 @@ public class Promise(T = void) {
 
             void schedule(size_t index, Promise!T promise) {
                 static if (is(T == void))
-                    promise.then(() {
+                    promise = promise.then(() {
                         values[index] = new PromiseFulfilledResult!void();
                     });
                 else
-                    promise.then((val) {
+                    promise = promise.then((val) {
                         values[index] = new PromiseFulfilledResult!T(val);
                         return val;
                     });

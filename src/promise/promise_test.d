@@ -1100,19 +1100,21 @@ unittest {
 /// Test Promise.allSettled with all pre-resolved promises
 unittest {
     writeln("Testing Promise.allSettled with all pre-resolved promises");
-    auto p = Promise!int.allSettled([
-        Promise!int.resolve(1),
-        Promise!int.resolve(2),
-        Promise!int.resolve(3)
-    ]);
-    auto results = p.await();
-    assert(results.length == 3);
-    foreach (r; results) {
-        assert(r.status == PromiseSettledResult.Status.FULFILLED);
+    foreach (_; parallel(iota(0, 100))) {
+        auto p = Promise!int.allSettled([
+            Promise!int.resolve(1),
+            Promise!int.resolve(2),
+            Promise!int.resolve(3)
+        ]);
+        auto results = p.await();
+        assert(results.length == 3);
+        foreach (r; results) {
+            assert(r.status == PromiseSettledResult.Status.FULFILLED);
+        }
+        assert((cast(PromiseFulfilledResult!int)results[0]).value == 1);
+        assert((cast(PromiseFulfilledResult!int)results[1]).value == 2);
+        assert((cast(PromiseFulfilledResult!int)results[2]).value == 3);
     }
-    assert((cast(PromiseFulfilledResult!int)results[0]).value == 1);
-    assert((cast(PromiseFulfilledResult!int)results[1]).value == 2);
-    assert((cast(PromiseFulfilledResult!int)results[2]).value == 3);
 }
 
 /// Test Promise.allSettled with all pre-rejected promises
