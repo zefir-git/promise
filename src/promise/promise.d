@@ -9,6 +9,25 @@ import std.range;
 import std.traits;
 
 /**
+ * Fulfills the Promise.
+ */
+private template PrivateResolve(T) {
+    static if (is(T == void))
+        /**
+         * Fulfills the Promise.
+         */
+        alias PrivateResolve = void delegate();
+    else
+        /**
+         * Fulfills the Promise with the provided value.
+         *
+         * Params:
+         *   value = Value to fulfill the Promise with.
+         */
+        alias PrivateResolve = void delegate(T value);
+}
+
+/**
  * Represents the eventual completion (or failure) of an asynchronous operation.
  */
 public class Promise(T = void) {
@@ -288,6 +307,8 @@ public class Promise(T = void) {
         });
     }
 
+    public static alias Resolve = PrivateResolve!T;
+
     static if (is(T == void)) {
         /**
          * Creates a void Promise that is already resolved.
@@ -298,11 +319,6 @@ public class Promise(T = void) {
             promise.state = State.FULFILLED;
             return promise;
         }
-
-        /**
-         * Fulfills the Promise.
-         */
-        public alias Resolve = void delegate();
 
         private void _resolve() {
             synchronized(mutex) {
@@ -385,14 +401,6 @@ public class Promise(T = void) {
             promise.fulfillmentValue = value;
             return promise;
         }
-
-        /**
-         * Fulfills the Promise with the provided value.
-         *
-         * Params:
-         *   value = Value to fulfill the Promise with.
-         */
-        public alias Resolve = void delegate(T value);
 
         private void _resolve(T value) {
             synchronized(mutex) {
