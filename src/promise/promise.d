@@ -2,6 +2,7 @@ module promise;
 
 import core.atomic;
 import core.sync.condition;
+import core.sync.event;
 import core.sync.mutex;
 import std.array;
 import std.parallelism;
@@ -305,6 +306,25 @@ public class Promise(T = void) {
         return new Promise!T(() {
             return func(args);
         });
+    }
+
+    /** 
+     * Creates an object that contains a new `Promise` and two functions to resolve or reject it.
+     */
+    public static PromiseWithResolvers!T withResolvers() {
+        Resolve resolve;
+        Reject reject;
+        Event event;
+        
+        event.initialize(manualReset: true, initialState: false);
+        
+        auto promise = new Promise!T((s, j) {
+            resolve = s;
+            reject = j;
+            event.setIfInitialized();
+        });
+        event.wait();
+        return new PromiseWithResolvers!T(promise, resolve, reject);
     }
 
     public static alias Resolve = PrivateResolve!T;
@@ -730,5 +750,23 @@ public class AggregateException : Exception {
     public this(Exception[] exceptions, string message) {
         super(message);
         this.exceptions = exceptions;
+    }
+}
+
+public final class PromiseWithResolvers(T) {
+    private Promise!T _promise;
+
+    public @property Promise!T promise() {
+        return _promise;
+    }
+
+    public Promise!T.Resolve resolve;
+
+    public Promise!T.Reject reject;
+
+    private this(Promise!T promise, Promise!T.Resolve resolve, Promise!T.Reject reject) {
+        this._promise = promise;
+        this.resolve = resolve;
+        this.reject = reject;
     }
 }

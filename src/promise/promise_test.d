@@ -1177,3 +1177,82 @@ unittest {
     p.await();
     assert(called);
 }
+
+/// Test Promise.withResolvers creates a promise with resolvers
+unittest {
+    writeln("Testing Promise.withResolvers creates a promise with resolvers");
+    auto pw = Promise!int.withResolvers();
+    
+    assert(is(typeof(pw.resolve) == delegate));
+    assert(is(typeof(pw.reject) == delegate));
+
+    pw.resolve(42);
+    assert(pw.promise.await() == 42);
+}
+
+/// Test Promise.withResolvers rejects promise
+unittest {
+    writeln("Testing Promise.withResolvers rejects promise");
+    auto pw = Promise!int.withResolvers();
+    auto p = pw.promise;
+    auto reject = pw.reject;
+
+    reject(new Exception("Test failure"));
+    assertThrown!Exception(p.await());
+    assert(collectExceptionMsg(p.await()) == "Test failure");
+}
+
+/// Test Promise.withResolvers works with void promise
+unittest {
+    writeln("Testing Promise.withResolvers works with void promise");
+    auto pw = Promise!void.withResolvers();
+    auto p = pw.promise;
+    auto resolve = pw.resolve;
+
+    resolve();
+    assertNotThrown(p.await());
+}
+
+/// Test Promise.withResolvers returns immediately after creation
+unittest {
+    writeln("Testing Promise.withResolvers returns immediately after creation");
+    import std.datetime.stopwatch : StopWatch, AutoStart;
+
+    auto sw = StopWatch(AutoStart.yes);
+    auto pw = Promise!int.withResolvers();
+    sw.stop();
+
+    assert(sw.peek().total!"msecs" < 10);
+
+    pw.resolve(123);
+    assert(pw.promise.await() == 123);
+}
+
+/// Test Promise.withResolvers resolves asynchronously
+unittest {
+    writeln("Testing Promise.withResolvers resolves asynchronously");
+    auto pw = Promise!int.withResolvers();
+    auto p = pw.promise;
+
+    task({
+        Thread.sleep(dur!"msecs"(20));
+        pw.resolve(99);
+    }).executeInNewThread();
+
+    assert(p.await() == 99);
+}
+
+/// Test Promise.withResolvers rejects asynchronously
+unittest {
+    writeln("Testing Promise.withResolvers rejects asynchronously");
+    auto pw = Promise!int.withResolvers();
+    auto p = pw.promise;
+
+    task({
+        Thread.sleep(dur!"msecs"(20));
+        pw.reject(new Exception("Async fail"));
+    }).executeInNewThread();
+
+    assertThrown!Exception(p.await());
+    assert(collectExceptionMsg(p.await()) == "Async fail");
+}
