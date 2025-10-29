@@ -124,7 +124,7 @@ public class Promise(T = void) {
         });
     }
 
-    /** 
+    /**
      * Creates a Promise that fulfills when all of the provided Promises have settled (either fulfilled or rejected).
      *
      * Params:
@@ -290,7 +290,7 @@ public class Promise(T = void) {
                     break;
         });
     }
-    
+
     /**
      * Creates a Promise that fulfills with the return value of the provided delegate, or rejects if the delegate throws
      * an exception.
