@@ -753,15 +753,27 @@ public class AggregateException : Exception {
     }
 }
 
+/** 
+ * Represents a promise with its associated resolve and reject functions.
+ */
 public final class PromiseWithResolvers(T) {
     private Promise!T _promise;
 
+    /** 
+     * Promise instance. 
+     */
     public @property Promise!T promise() {
         return _promise;
     }
 
+    /** 
+     * Function for fulfilling the promise. 
+     */
     public Promise!T.Resolve resolve;
 
+    /** 
+     * Function for rejecting the promise. 
+     */
     public Promise!T.Reject reject;
 
     private this(Promise!T promise, Promise!T.Resolve resolve, Promise!T.Reject reject) {
