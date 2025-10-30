@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        compiler: [dmd]
+        compiler: [dmd, ldc, gdc]
 
     steps:
       - name: Checkout repository
