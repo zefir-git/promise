@@ -33,7 +33,7 @@ jobs:
       - name: Enable Debian experimental for GDC-15
         if: matrix.compiler == 'gdc-15' && startsWith(matrix.os, 'ubuntu')
         run: |
-          echo "deb http://deb.debian.org/debian experimental main" | sudo tee /etc/apt/sources.list.d/experimental.list
+          echo "deb [trusted=yes] http://deb.debian.org/debian experimental main" | sudo tee /etc/apt/sources.list.d/experimental.list
           sudo apt update
 
       - name: Set up D compiler
