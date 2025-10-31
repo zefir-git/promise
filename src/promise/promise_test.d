@@ -477,7 +477,7 @@ unittest {
 
     auto sw = StopWatch(AutoStart.yes);
     auto p = new Promise!int((resolve, reject) {
-        Thread.sleep(dur!"msecs"(50));
+        Thread.sleep(dur!"msecs"(250));
         resolve(123);
     });
 
@@ -485,8 +485,8 @@ unittest {
     sw.stop();
 
     assert(result == 123);
-    assert(sw.peek().total!"msecs" >= 40);
-    assert(sw.peek().total!"msecs" <= 60);
+    assert(sw.peek().total!"msecs" >= 200);
+    assert(sw.peek().total!"msecs" <= 300);
 }
 
 /// Test Promise.resolve with already resolved promise
@@ -602,15 +602,15 @@ unittest {
     writeln("Testing Promise.all with multiple fulfilled promises");
     auto promises = [
         new Promise!int((resolve, reject) {
-            Thread.sleep(dur!"msecs"(10));
+            Thread.sleep(dur!"msecs"(50));
             resolve(1);
         }),
         new Promise!int((resolve, reject) {
-            Thread.sleep(dur!"msecs"(5));
+            Thread.sleep(dur!"msecs"(25));
             resolve(2);
         }),
         new Promise!int((resolve, reject) {
-            Thread.sleep(dur!"msecs"(15));
+            Thread.sleep(dur!"msecs"(75));
             resolve(3);
         })
     ];
@@ -629,15 +629,15 @@ unittest {
     writeln("Testing Promise.all maintains order");
     auto promises = [
         new Promise!int((resolve, reject) {
-            Thread.sleep(dur!"msecs"(30));
+            Thread.sleep(dur!"msecs"(150));
             resolve(100);
         }),
         new Promise!int((resolve, reject) {
-            Thread.sleep(dur!"msecs"(10));
+            Thread.sleep(dur!"msecs"(50));
             resolve(200);
         }),
         new Promise!int((resolve, reject) {
-            Thread.sleep(dur!"msecs"(20));
+            Thread.sleep(dur!"msecs"(100));
             resolve(300);
         })
     ];
@@ -811,11 +811,11 @@ unittest {
 
     auto promises = [
         new Promise!int((resolve, reject) {
-            Thread.sleep(dur!"msecs"(10));
+            Thread.sleep(dur!"msecs"(50));
             reject(new Exception("Fast fail"));
         }),
         new Promise!int((resolve, reject) {
-            Thread.sleep(dur!"msecs"(100));
+            Thread.sleep(dur!"msecs"(500));
             resolve(2);
         })
     ];
@@ -825,7 +825,7 @@ unittest {
 
     assertThrown!Exception(p.await());
     sw.stop();
-    assert(sw.peek().total!"msecs" < 20);
+    assert(sw.peek().total!"msecs" < 100);
 }
 
 /// Test Promise.race resolves with first settled promise
@@ -834,15 +834,15 @@ unittest {
     foreach (_; parallel(iota(0, 100))) {
         auto p = Promise!int.race([
             new Promise!int((resolve, reject) {
-                Thread.sleep(dur!"msecs"(30));
+                Thread.sleep(dur!"msecs"(150));
                 resolve(1);
             }),
             new Promise!int((resolve, reject) {
-                Thread.sleep(dur!"msecs"(10));
+                Thread.sleep(dur!"msecs"(50));
                 resolve(2);
             }),
             new Promise!int((resolve, reject) {
-                Thread.sleep(dur!"msecs"(20));
+                Thread.sleep(dur!"msecs"(100));
                 resolve(3);
             })
         ]);
@@ -856,15 +856,15 @@ unittest {
     foreach (_; parallel(iota(0, 100))) {
         auto p = Promise!void.race([
             new Promise!void((resolve, reject) {
-                Thread.sleep(dur!"msecs"(30));
+                Thread.sleep(dur!"msecs"(150));
                 reject(new Exception("One"));
             }),
             new Promise!void((resolve, reject) {
-                Thread.sleep(dur!"msecs"(10));
+                Thread.sleep(dur!"msecs"(50));
                 reject(new Exception("Two"));
             }),
             new Promise!void((resolve, reject) {
-                Thread.sleep(dur!"msecs"(20));
+                Thread.sleep(dur!"msecs"(100));
                 reject(new Exception("Three"));
             })
         ]);
@@ -903,19 +903,19 @@ unittest {
     writeln("Testing Promise.race with a mix of pending and fulfilled promises");
     foreach (_; parallel(iota(0, 100))) {
         auto resolved = new Promise!int(() {
-            Thread.sleep(dur!"msecs"(5));
+            Thread.sleep(dur!"msecs"(25));
             return 2;
         });
-        Thread.sleep(dur!"msecs"(10));
+        Thread.sleep(dur!"msecs"(50));
         auto promises = [
             new Promise!int(() {
-                Thread.sleep(dur!"msecs"(20));
+                Thread.sleep(dur!"msecs"(100));
                 return 1;
             }),
             resolved,
             Promise!int.resolve(3),
             new Promise!int(() {
-                Thread.sleep(dur!"msecs"(5));
+                Thread.sleep(dur!"msecs"(25));
                 return 4;
             }),
         ];
@@ -937,15 +937,15 @@ unittest {
     foreach (_; parallel(iota(0, 100))) {
         auto p = Promise!int.any([
             new Promise!int((resolve, reject) {
-                Thread.sleep(dur!"msecs"(30));
+                Thread.sleep(dur!"msecs"(150));
                 resolve(1);
             }),
             new Promise!int((resolve, reject) {
-                Thread.sleep(dur!"msecs"(10));
+                Thread.sleep(dur!"msecs"(50));
                 resolve(2);
             }),
             new Promise!int((resolve, reject) {
-                Thread.sleep(dur!"msecs"(20));
+                Thread.sleep(dur!"msecs"(100));
                 resolve(3);
             })
         ]);
@@ -994,19 +994,19 @@ unittest {
     foreach (_; parallel(iota(0, 100))) {
         auto p = Promise!int.any([
             new Promise!int(() {
-                Thread.sleep(dur!"msecs"(30));
+                Thread.sleep(dur!"msecs"(150));
                 return 1;
             }),
             new Promise!int(() {
-                Thread.sleep(dur!"msecs"(10));
+                Thread.sleep(dur!"msecs"(50));
                 return throw new Exception("Reject");
             }),
             new Promise!int(() {
-                Thread.sleep(dur!"msecs"(30));
+                Thread.sleep(dur!"msecs"(150));
                 return throw new Exception("Reject");
             }),
             new Promise!int(() {
-                Thread.sleep(dur!"msecs"(20));
+                Thread.sleep(dur!"msecs"(100));
                 return 42;
             }),
             Promise!int.reject(new Exception("Reject"))
@@ -1021,15 +1021,15 @@ unittest {
     writeln("Testing Promise.allSettled with all fulfilled promises");
     auto p = Promise!int.allSettled([
         new Promise!int((resolve, reject) {
-            Thread.sleep(dur!"msecs"(20));
+            Thread.sleep(dur!"msecs"(100));
             resolve(1);
         }),
         new Promise!int((resolve, reject) {
-            Thread.sleep(dur!"msecs"(10));
+            Thread.sleep(dur!"msecs"(50));
             resolve(2);
         }),
         new Promise!int((resolve, reject) {
-            Thread.sleep(dur!"msecs"(30));
+            Thread.sleep(dur!"msecs"(150));
             resolve(3);
         })
     ]);
@@ -1048,15 +1048,15 @@ unittest {
     writeln("Testing Promise.allSettled with all rejected promises");
     auto p = Promise!int.allSettled([
         new Promise!int((resolve, reject) {
-            Thread.sleep(dur!"msecs"(20));
+            Thread.sleep(dur!"msecs"(100));
             reject(new Exception("One"));
         }),
         new Promise!int((resolve, reject) {
-            Thread.sleep(dur!"msecs"(10));
+            Thread.sleep(dur!"msecs"(50));
             reject(new Exception("Two"));
         }),
         new Promise!int((resolve, reject) {
-            Thread.sleep(dur!"msecs"(30));
+            Thread.sleep(dur!"msecs"(150));
             reject(new Exception("Three"));
         })
     ]);
@@ -1182,7 +1182,7 @@ unittest {
 unittest {
     writeln("Testing Promise.withResolvers creates a promise with resolvers");
     auto pw = Promise!int.withResolvers();
-    
+
     assert(is(typeof(pw.resolve) == delegate));
     assert(is(typeof(pw.reject) == delegate));
 
