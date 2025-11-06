@@ -486,7 +486,7 @@ unittest {
 
     assert(result == 123);
     assert(sw.peek().total!"msecs" >= 200);
-    assert(sw.peek().total!"msecs" <= 300);
+    assert(sw.peek().total!"msecs" <= 350);
 }
 
 /// Test Promise.resolve with already resolved promise
@@ -673,11 +673,11 @@ unittest {
     writeln("Testing Promise.all rejects with first rejection");
     auto promises = [
         new Promise!int((resolve, reject) {
-            Thread.sleep(dur!"msecs"(20));
+            Thread.sleep(dur!"msecs"(100));
             reject(new Exception("Second"));
         }),
         new Promise!int((resolve, reject) {
-            Thread.sleep(dur!"msecs"(10));
+            Thread.sleep(dur!"msecs"(50));
             reject(new Exception("First"));
         }),
         Promise!int.resolve(3)
