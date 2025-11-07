@@ -9,6 +9,7 @@ import std.range;
 import std.stdio;
 
 import promise;
+import fluent.asserts;
 
 /// Test basic promise fulfillment with value
 unittest {
@@ -18,7 +19,7 @@ unittest {
         resolve(42);
     });
 
-    assert(p.await() == 42);
+    p.await().should.equal(42);
 }
 
 /// Test basic promise fulfillment with void
@@ -32,7 +33,7 @@ unittest {
     });
 
     p.await();
-    assert(executed);
+    executed.should.equal(true);
 }
 
 /// Test basic promise rejection
@@ -43,8 +44,8 @@ unittest {
         reject(new Exception("Test error"));
     });
 
-    assertThrown(p.await());
-    assert(collectExceptionMsg(p.await()) == "Test error");
+    (() {p.await();}).should.throwException!Exception;
+    collectExceptionMsg(p.await()).should.equal("Test error");
 }
 
 /// Test executor exception causes rejection
@@ -54,8 +55,8 @@ unittest {
         throw new Exception("Executor error");
     });
 
-    assertThrown!Exception(p.await());
-    assert(collectExceptionMsg(p.await()) == "Executor error");
+    (() {p.await();}).should.throwException!Exception;
+    collectExceptionMsg(p.await()).should.equal("Executor error");
 }
 
 /// Test basic promise fulfillment by returning value in executor
@@ -66,7 +67,7 @@ unittest {
         return 42;
     });
 
-    assert(p.await() == 42);
+    p.await().should.equal(42);
 }
 
 /// Test basic promise rejection by throwing exception in executor
@@ -78,7 +79,7 @@ unittest {
         return 42;
     });
 
-    assertThrown!Exception(p.await());
+    (() {p.await();}).should.throwException!Exception;
 }
 
 /// Test basic void promise fulfillment without resolve/reject in executor
@@ -90,23 +91,23 @@ unittest {
         flag = false;
         return;
     });
-    assert(flag);
+    flag.should.equal(true);
     p.await();
-    assert(!flag);
+    flag.should.equal(false);
 }
 
 /// Test Promise.resolve with value
 unittest {
     writeln("Testing Promise.resolve with value");
     auto p = Promise!int.resolve(100);
-    assert(p.await() == 100);
+    p.await().should.equal(100);
 }
 
 /// Test Promise.resolve with void
 unittest {
     writeln("Testing Promise.resolve with void");
     auto p = Promise!void.resolve();
-    assertNotThrown(p.await());
+    (() {p.await();}).should.not.throwAnyException;
 }
 
 /// Test Promise.reject
@@ -114,8 +115,8 @@ unittest {
     writeln("Testing Promise.reject");
     auto p = Promise!string.reject(new Exception("Rejected"));
 
-    assertThrown!Exception(p.await());
-    assert(collectExceptionMsg(p.await()) == "Rejected");
+    (() {p.await();}).should.throwException!Exception;
+    collectExceptionMsg(p.await()).should.equal("Rejected");
 }
 
 /// Test then with fulfillment handler (value to value)
@@ -126,7 +127,7 @@ unittest {
     });
 
     auto p2 = p.then!int((value) => value * 2);
-    assert(p2.await() == 20);
+    p2.await().should.equal(20);
 }
 
 /// Test then with fulfillment handler (value to void)
@@ -140,15 +141,15 @@ unittest {
     auto p2 = p.then!void((value) {
         result = value;
     });
-    assertNotThrown(p2.await());
-    assert(result == 42);
+    p2.await().should.not.throwAnyException;
+    result.should.equal(42);
 }
 
 /// Test then with fulfillment handler (void to value)
 unittest {
     writeln("Testing then with fulfillment handler (void to value)");
     auto p = Promise!void.resolve().then!int(() => 42);
-    assert(p.await() == 42);
+    p.await().should.equal(42);
 }
 
 /// Test then with fulfillment handler (void to void)
@@ -159,7 +160,7 @@ unittest {
         called = true;
     });
     p.await();
-    assert(called);
+    called.should.equal(true);
 }
 
 /// Test then with rejection handler
@@ -167,11 +168,11 @@ unittest {
     writeln("Testing then with rejection handler");
     auto p1 = Promise!int.reject(new Exception("Rejected"))
         .then!int((value) => value * 2, (error) => 999);
-    assert(p1.await() == 999);
+    p1.await().should.equal(999);
 
     auto p2 = Promise!int.resolve(21)
         .then!int((value) => value * 2, (error) => 999);
-    assert(p2.await() == 42);
+    p2.await().should.equal(42);
 }
 
 /// Test then chain (multiple then calls)
@@ -187,7 +188,7 @@ unittest {
         .then!int((v) => v + 10)
         .await();
 
-    assert(result == 14); // ((1 + 1) * 2) + 10 = 14
+    result.should.equal(14);
 }
 
 /// Test then without handler propagates fulfillment
@@ -198,7 +199,7 @@ unittest {
     });
 
     auto p2 = p.then!int(null, null);
-    assert(p2.await() == 55);
+    p2.await().should.equal(55);
 }
 
 /// Test then without handler propagates rejection
@@ -209,7 +210,7 @@ unittest {
     });
 
     auto p2 = p.then!int(null, null);
-    assertThrown!Exception(p2.await());
+    (() {p2.await();}).should.throwException!Exception;
 }
 
 /// Test catch_ with rejection
@@ -217,7 +218,7 @@ unittest {
     writeln("Testing catch_ with rejection");
     auto p = Promise!int.reject(new Exception("Catch me"))
         .catch_((error) => 123);
-    assert(p.await() == 123);
+    p.await().should.equal(123);
 }
 
 /// Test catch_ with fulfillment (no-op)
@@ -225,7 +226,7 @@ unittest {
     writeln("Testing catch_ with fulfillment (no-op)");
     auto p = Promise!int.resolve(50)
         .catch_((error) => 999);
-    assert(p.await() == 50);
+    p.await().should.equal(50);
 }
 
 /// Test finally_ with fulfillment
@@ -239,10 +240,10 @@ unittest {
         finallyCalled = true;
     });
 
-    assert(p.await() == 100);
-    assert(!finallyCalled);
-    assert(p2.await() == 100);
-    assert(finallyCalled);
+    p.await().should.equal(100);
+    finallyCalled.should.equal(false);
+    p2.await().should.equal(100);
+    finallyCalled.should.equal(true);
 }
 
 /// Test finally_ with rejection
@@ -256,13 +257,13 @@ unittest {
         finallyCalled = true;
     });
 
-    assertThrown!Exception(p.await());
-    assert(collectExceptionMsg(p.await()) == "Finally test");
-    assert(!finallyCalled);
+    (() {p.await();}).should.throwException!Exception;
+    collectExceptionMsg(p.await()).should.equal("Finally test");
+    finallyCalled.should.equal(false);
 
-    assertThrown!Exception(p2.await());
-    assert(collectExceptionMsg(p2.await()) == "Finally test");
-    assert(finallyCalled);
+    (() {p2.await();}).should.throwException!Exception;
+    collectExceptionMsg(p2.await()).should.equal("Finally test");
+    finallyCalled.should.equal(true);
 }
 
 /// Test finally_ exception overrides original result
@@ -273,16 +274,16 @@ unittest {
             throw new Exception("Finally error");
         });
 
-    assertThrown!Exception(p1.await());
-    assert(collectExceptionMsg(p1.await()) == "Finally error");
+    (() {p1.await();}).should.throwException!Exception;
+    collectExceptionMsg(p1.await()).should.equal("Finally error");
 
     auto p2 = Promise!int.reject(new Exception("Rejected"))
         .finally_(() {
             throw new Exception("Finally error");
         });
 
-    assertThrown!Exception(p2.await());
-    assert(collectExceptionMsg(p2.await()) == "Finally error");
+    (() {p2.await();}).should.throwException!Exception;
+    collectExceptionMsg(p2.await()).should.equal("Finally error");
 }
 
 /// Test multiple await on same promise
@@ -293,9 +294,9 @@ unittest {
         resolve(42);
     });
 
-    assert(p.await() == 42);
-    assert(p.await() == 42);
-    assert(p.await() == 42);
+    p.await().should.equal(42);
+    p.await().should.equal(42);
+    p.await().should.equal(42);
 }
 
 /// Test resolve called multiple times (only first counts)
@@ -307,8 +308,8 @@ unittest {
         resolve(3);
     });
 
-    assert(p.await() == 1);
-    assert(p.await() == 1);
+    p.await().should.equal(1);
+    p.await().should.equal(1);
 }
 
 /// Test reject called multiple times (only first counts)
@@ -319,8 +320,8 @@ unittest {
         reject(new Exception("Second"));
     });
 
-    assert(collectExceptionMsg(p.await()) == "First");
-    assert(collectExceptionMsg(p.await()) == "First");
+    collectExceptionMsg(p.await()).should.equal("First");
+    collectExceptionMsg(p.await()).should.equal("First");
 }
 
 /// Test resolve then reject (resolve wins)
@@ -331,8 +332,8 @@ unittest {
         reject(new Exception("Should be ignored"));
     });
 
-    assert(p.await() == 100);
-    assert(p.await() == 100);
+    p.await().should.equal(100);
+    p.await().should.equal(100);
 }
 
 /// Test reject then resolve (reject wins)
@@ -343,8 +344,7 @@ unittest {
         resolve(200);
     });
 
-    assertThrown!Exception(p.await());
-    assertThrown!Exception(p.await());
+    (() {p.await();}).should.throwException!Exception;
 }
 
 /// Test promise with string type
@@ -354,7 +354,7 @@ unittest {
         resolve("Hello, World!");
     });
 
-    assert(p.await() == "Hello, World!");
+    p.await().should.equal("Hello, World!");
 }
 
 /// Test promise with float type
@@ -365,7 +365,8 @@ unittest {
     });
 
     auto result = p.await();
-    assert(result > 3.14 && result < 3.15);
+    result.should.be.greaterThan(3.14);
+    result.should.be.lessThan(3.15);
 }
 
 /// Test promise with array type
@@ -376,8 +377,8 @@ unittest {
     });
 
     auto result = p.await();
-    assert(result.length == 5);
-    assert(result[2] == 3);
+    result.length.should.equal(5);
+    result[2].should.equal(3);
 }
 
 /// Test promise with custom struct
@@ -392,8 +393,8 @@ unittest {
     });
 
     auto result = p.await();
-    assert(result.x == 10);
-    assert(result.y == 20);
+    result.x.should.equal(10);
+    result.y.should.equal(20);
 }
 
 /// Test promise chain with type transformations
@@ -408,8 +409,8 @@ unittest {
         return "The answer is " ~ value.to!string;
     });
 
-    assert(p.await() == 42);
-    assert(p2.await() == "The answer is 42");
+    p.await().should.equal(42);
+    p2.await().should.equal("The answer is 42");
 }
 
 /// Test then handler throwing exception
@@ -423,8 +424,8 @@ unittest {
         return throw new Exception("Handler error");
     });
 
-    assertThrown!Exception(p2.await());
-    assert(collectExceptionMsg(p2.await()) == "Handler error");
+    (() {p2.await();}).should.throwException!Exception;
+    collectExceptionMsg(p2.await()).should.equal("Handler error");
 }
 
 /// Test catch_ handler throwing exception
@@ -438,8 +439,8 @@ unittest {
         return throw new Exception("Catch handler error");
     });
 
-    assertThrown!Exception(p2.await());
-    assert(collectExceptionMsg(p2.await()) == "Catch handler error");
+    (() {p2.await();}).should.throwException!Exception;
+    collectExceptionMsg(p2.await()).should.equal("Catch handler error");
 }
 
 /// Test rejection handler with void return type
@@ -451,7 +452,7 @@ unittest {
             handlerCalled = true;
         })
         .await();
-    assert(handlerCalled);
+    handlerCalled.should.equal(true);
 }
 
 /// Test complex chain with mixed success and error handling
@@ -467,7 +468,7 @@ unittest {
         .then!int((v) => v + 100)
         .await();
 
-    assert(result == 100); // (10 * 2 = 20) throws, catch returns 0, then 0 + 100 = 100
+    result.should.equal(100);
 }
 
 /// Test await blocks until promise settles
@@ -484,16 +485,16 @@ unittest {
     auto result = p.await();
     sw.stop();
 
-    assert(result == 123);
-    assert(sw.peek().total!"msecs" >= 200);
-    assert(sw.peek().total!"msecs" <= 350);
+    result.should.equal(123);
+    sw.peek().total!"msecs".should.be.greaterOrEqualTo(200);
+    sw.peek().total!"msecs".should.be.lessOrEqualTo(350);
 }
 
 /// Test Promise.resolve with already resolved promise
 unittest {
     writeln("Testing Promise.resolve with already resolved promise");
     auto p1 = Promise!int.resolve(42);
-    assert(p1.await() == 42);
+    p1.await().should.equal(42);
 }
 
 /// Test void promise with then returning value
@@ -501,7 +502,7 @@ unittest {
     writeln("Testing void promise with then returning value");
     auto p = Promise!void.resolve();
     auto p2 = p.then!string(() => "converted");
-    assert(p2.await() == "converted");
+    p2.await().should.equal("converted");
 }
 
 /// Test long promise chain
@@ -512,7 +513,7 @@ unittest {
     foreach (i; 0..10)
         p = p.then!int((v) => v + 1);
 
-    assert(p.await() == 11);
+    p.await().should.equal(11);
 }
 
 /// Test error propagation through long chain
@@ -527,7 +528,8 @@ unittest {
         .then!int((v) => v * 2)
         .then!int((v) => v - 5);
 
-    assertThrown!Exception(p2.await());
+    (() {p2.await();}).should.throwException!Exception;
+    collectExceptionMsg(p2.await()).should.equal("Initial error");
 }
 
 /// Test recovery in middle of chain
@@ -542,7 +544,7 @@ unittest {
         .then!int((v) => v * 3)
         .await();
 
-    assert(result == 30);
+    result.should.equal(30);
 }
 
 /// Test immediate resolution
@@ -552,7 +554,7 @@ unittest {
         resolve(999);
     });
 
-    assert(p.await() == 999);
+    p.await().should.equal(999);
 }
 
 /// Test immediate rejection
@@ -561,8 +563,9 @@ unittest {
     auto p = new Promise!int((resolve, reject) {
         reject(new Exception("Immediate"));
     });
-
-    assertThrown!Exception(p.await());
+        
+    (() {p.await();}).should.throwException!Exception;
+    collectExceptionMsg(p.await()).should.equal("Immediate");
 }
 
 /// Test nested promise execution
@@ -575,14 +578,14 @@ unittest {
         outerResolve(inner.await());
     });
 
-    assert(outer.await() == 42);
+    outer.await().should.equal(42);
 }
 
 /// Test Promise.all with empty array
 unittest {
     writeln("Testing Promise.all with empty array");
     auto p = Promise!().all!int([]);
-    assert(p.await().length == 0);
+    p.await().length.should.equal(0);
 }
 
 /// Test Promise.all with single promise
@@ -593,8 +596,8 @@ unittest {
     ];
     auto p = Promise!().all!int(promises);
     auto result = p.await();
-    assert(result.length == 1);
-    assert(result[0] == 42);
+    result.length.should.equal(1);
+    result[0].should.equal(42);
 }
 
 /// Test Promise.all with multiple fulfilled promises
@@ -618,10 +621,10 @@ unittest {
     auto p = Promise!().all!int(promises);
     auto result = p.await();
 
-    assert(result.length == 3);
-    assert(result[0] == 1);
-    assert(result[1] == 2);
-    assert(result[2] == 3);
+    result.length.should.equal(3);
+    result[0].should.equal(1);
+    result[1].should.equal(2);
+    result[2].should.equal(3);
 }
 
 /// Test Promise.all maintains order
@@ -645,9 +648,9 @@ unittest {
     auto p = Promise!().all!int(promises);
     auto result = p.await();
 
-    assert(result[0] == 100);
-    assert(result[1] == 200);
-    assert(result[2] == 300);
+    result[0].should.equal(100);
+    result[1].should.equal(200);
+    result[2].should.equal(300);
 }
 
 /// Test Promise.all rejects if any promise rejects
@@ -664,8 +667,8 @@ unittest {
 
     auto p = Promise!().all!int(promises);
 
-    assertThrown!Exception(p.await());
-    assert(collectExceptionMsg(p.await()) == "Failed");
+    (() {p.await();}).should.throwException!Exception;
+    collectExceptionMsg(p.await()).should.equal("Failed");
 }
 
 /// Test Promise.all rejects with first rejection
@@ -673,7 +676,7 @@ unittest {
     writeln("Testing Promise.all rejects with first rejection");
     auto promises = [
         new Promise!int((resolve, reject) {
-            Thread.sleep(dur!"msecs"(100));
+            Thread.sleep(dur!"msecs"(200));
             reject(new Exception("Second"));
         }),
         new Promise!int((resolve, reject) {
@@ -685,7 +688,7 @@ unittest {
 
     auto p = Promise!().all!int(promises);
 
-    assert(collectExceptionMsg(p.await()) == "First");
+    collectExceptionMsg(p.await()).should.equal("First");
 }
 
 /// Test Promise.all with mix of immediate and delayed promises
@@ -703,10 +706,10 @@ unittest {
     auto p = Promise!().all!int(promises);
     auto result = p.await();
 
-    assert(result.length == 3);
-    assert(result[0] == 10);
-    assert(result[1] == 20);
-    assert(result[2] == 30);
+    result.length.should.equal(3);
+    result[0].should.equal(10);
+    result[1].should.equal(20);
+    result[2].should.equal(30);
 }
 
 /// Test Promise.all void with single promise
@@ -716,7 +719,7 @@ unittest {
         Promise!void.resolve()
     ];
     auto p = Promise!().all!void(promises);
-    assertNotThrown(p.await());
+    (() {p.await();}).should.not.throwAnyException;
 }
 
 /// Test Promise.all void with multiple fulfilled promises
@@ -746,9 +749,9 @@ unittest {
 
     Promise!().all!void(promises).await();
 
-    assert(flag1);
-    assert(flag2);
-    assert(flag3);
+    flag1.should.equal(true);
+    flag2.should.equal(true);
+    flag3.should.equal(true);
 }
 
 /// Test Promise.all void rejects if any promise rejects
@@ -765,7 +768,7 @@ unittest {
 
     auto p = Promise!().all!void(promises);
 
-    assertThrown!Exception(p.await());
+    (() {p.await();}).should.throwException!Exception;
 }
 
 /// Test Promise.all void with mix of immediate and delayed promises
@@ -786,7 +789,7 @@ unittest {
     auto p = Promise!().all!void(promises);
     p.await();
 
-    assert(delayed);
+    delayed.should.equal(true);
 }
 
 /// Test Promise.all with large number of promises
@@ -799,9 +802,9 @@ unittest {
     auto p = Promise!().all!int(promises);
     auto result = p.await();
 
-    assert(result.length == 1000);
+    result.length.should.equal(1000);
     foreach (i; 0..1000)
-        assert(result[i] == i);
+        result[i].should.equal(i);
 }
 
 /// Test Promise.all doesn't wait for remaining promises after rejection
@@ -823,9 +826,9 @@ unittest {
     auto sw = StopWatch(AutoStart.yes);
     auto p = Promise!().all!int(promises);
 
-    assertThrown!Exception(p.await());
+    (() {p.await();}).should.throwException!Exception;
     sw.stop();
-    assert(sw.peek().total!"msecs" < 100);
+    sw.peek().total!"msecs".should.be.lessThan(100);
 }
 
 /// Test Promise.race resolves with first settled promise
@@ -846,7 +849,7 @@ unittest {
                 resolve(3);
             })
         ]);
-        assert(p.await() == 2);
+        p.await().should.equal(2);
     }
 }
 
@@ -868,7 +871,7 @@ unittest {
                 reject(new Exception("Three"));
             })
         ]);
-        assert(collectExceptionMsg(p.await()) == "Two");
+        collectExceptionMsg(p.await()).should.equal("Two");
     }
 }
 
@@ -881,7 +884,7 @@ unittest {
             Promise!int.resolve(2),
             Promise!int.resolve(3)
         ]);
-        assert(p.await() == 1);
+        p.await().should.equal(1);
     }
 }
 
@@ -894,7 +897,7 @@ unittest {
             Promise!int.reject(new Exception("Second")),
             Promise!int.reject(new Exception("Third"))
         ]);
-        assert(collectExceptionMsg(p.await()) == "First");
+        collectExceptionMsg(p.await()).should.equal("First");
     }
 }
 
@@ -920,7 +923,7 @@ unittest {
             }),
         ];
         auto p = Promise!int.race(promises);
-        assert(p.await() == 2);
+        p.await().should.equal(2);
     }
 }
 
@@ -928,7 +931,7 @@ unittest {
 unittest {
     writeln("Testing Promise.any without any promises");
     auto p = Promise!void.any([]);
-    assertThrown!AggregateException(p.await());
+    (() {p.await();}).should.throwException!AggregateException;
 }
 
 /// Test Promise.any resolves with first settled promise
@@ -949,7 +952,7 @@ unittest {
                 resolve(3);
             })
         ]);
-        assert(p.await() == 2);
+        p.await().should.equal(2);
     }
 }
 
@@ -962,7 +965,7 @@ unittest {
             Promise!int.resolve(2),
             Promise!int.resolve(3)
         ]);
-        assert(p.await() == 1);
+        p.await().should.equal(1);
     }
 }
 
@@ -976,14 +979,14 @@ unittest {
             Promise!int.reject(new Exception("Third"))
         ]);
 
-        assertThrown!AggregateException(p.await());
+        p.await().should.throwException!AggregateException;
 
         try p.await();
         catch (AggregateException aggregate) {
-            assert(aggregate.exceptions.length == 3);
-            assert(aggregate.exceptions[0].msg == "First");
-            assert(aggregate.exceptions[1].msg == "Second");
-            assert(aggregate.exceptions[2].msg == "Third");
+            aggregate.exceptions.length.should.equal(3);
+            aggregate.exceptions[0].msg.should.equal("First");
+            aggregate.exceptions[1].msg.should.equal("Second");
+            aggregate.exceptions[2].msg.should.equal("Third");
         }
     }
 }
@@ -1012,7 +1015,7 @@ unittest {
             Promise!int.reject(new Exception("Reject"))
         ]);
 
-        assert(p.await() == 42);
+        p.await().should.equal(42);
     }
 }
 
@@ -1034,13 +1037,13 @@ unittest {
         })
     ]);
     auto results = p.await();
-    assert(results.length == 3);
-    assert(results[0].status == PromiseSettledResult.Status.FULFILLED);
-    assert(results[1].status == PromiseSettledResult.Status.FULFILLED);
-    assert(results[2].status == PromiseSettledResult.Status.FULFILLED);
-    assert((cast(PromiseFulfilledResult!int)results[0]).value == 1);
-    assert((cast(PromiseFulfilledResult!int)results[1]).value == 2);
-    assert((cast(PromiseFulfilledResult!int)results[2]).value == 3);
+    results.length.should.equal(3);
+    results[0].status.should.equal(PromiseSettledResult.Status.FULFILLED);
+    results[1].status.should.equal(PromiseSettledResult.Status.FULFILLED);
+    results[2].status.should.equal(PromiseSettledResult.Status.FULFILLED);
+    (cast(PromiseFulfilledResult!int)results[0]).value.should.equal(1);
+    (cast(PromiseFulfilledResult!int)results[1]).value.should.equal(2);
+    (cast(PromiseFulfilledResult!int)results[2]).value.should.equal(3);
 }
 
 /// Test Promise.allSettled with all rejected promises
@@ -1061,13 +1064,13 @@ unittest {
         })
     ]);
     auto results = p.await();
-    assert(results.length == 3);
-    assert(results[0].status == PromiseSettledResult.Status.REJECTED);
-    assert(results[1].status == PromiseSettledResult.Status.REJECTED);
-    assert(results[2].status == PromiseSettledResult.Status.REJECTED);
-    assert((cast(PromiseRejectedResult)results[0]).reason.msg == "One");
-    assert((cast(PromiseRejectedResult)results[1]).reason.msg == "Two");
-    assert((cast(PromiseRejectedResult)results[2]).reason.msg == "Three");
+    results.length.should.equal(3);
+    results[0].status.should.equal(PromiseSettledResult.Status.REJECTED);
+    results[1].status.should.equal(PromiseSettledResult.Status.REJECTED);
+    results[2].status.should.equal(PromiseSettledResult.Status.REJECTED);
+    (cast(PromiseRejectedResult)results[0]).reason.msg.should.equal("One");
+    (cast(PromiseRejectedResult)results[1]).reason.msg.should.equal("Two");
+    (cast(PromiseRejectedResult)results[2]).reason.msg.should.equal("Three");
 }
 
 /// Test Promise.allSettled with a mix of fulfilled and rejected promises
@@ -1088,13 +1091,13 @@ unittest {
         })
     ]);
     auto results = p.await();
-    assert(results.length == 3);
-    assert(results[0].status == PromiseSettledResult.Status.FULFILLED);
-    assert(results[1].status == PromiseSettledResult.Status.REJECTED);
-    assert(results[2].status == PromiseSettledResult.Status.FULFILLED);
-    assert((cast(PromiseFulfilledResult!int)results[0]).value == 42);
-    assert((cast(PromiseRejectedResult)results[1]).reason.msg == "Fail");
-    assert((cast(PromiseFulfilledResult!int)results[2]).value == 7);
+    results.length.should.equal(3);
+    results[0].status.should.equal(PromiseSettledResult.Status.FULFILLED);
+    results[1].status.should.equal(PromiseSettledResult.Status.REJECTED);
+    results[2].status.should.equal(PromiseSettledResult.Status.FULFILLED);
+    (cast(PromiseFulfilledResult!int)results[0]).value.should.equal(42);
+    (cast(PromiseRejectedResult)results[1]).reason.msg.should.equal("Fail");
+    (cast(PromiseFulfilledResult!int)results[2]).value.should.equal(7);
 }
 
 /// Test Promise.allSettled with all pre-resolved promises
@@ -1107,13 +1110,13 @@ unittest {
             Promise!int.resolve(3)
         ]);
         auto results = p.await();
-        assert(results.length == 3);
+        results.length.should.equal(3);
         foreach (r; results) {
-            assert(r.status == PromiseSettledResult.Status.FULFILLED);
+            r.status.should.equal(PromiseSettledResult.Status.FULFILLED);
         }
-        assert((cast(PromiseFulfilledResult!int)results[0]).value == 1);
-        assert((cast(PromiseFulfilledResult!int)results[1]).value == 2);
-        assert((cast(PromiseFulfilledResult!int)results[2]).value == 3);
+        (cast(PromiseFulfilledResult!int)results[0]).value.should.equal(1);
+        (cast(PromiseFulfilledResult!int)results[1]).value.should.equal(2);
+        (cast(PromiseFulfilledResult!int)results[2]).value.should.equal(3);
     }
 }
 
@@ -1126,13 +1129,13 @@ unittest {
         Promise!int.reject(new Exception("Third"))
     ]);
     auto results = p.await();
-    assert(results.length == 3);
-    assert(results[0].status == PromiseSettledResult.Status.REJECTED);
-    assert(results[1].status == PromiseSettledResult.Status.REJECTED);
-    assert(results[2].status == PromiseSettledResult.Status.REJECTED);
-    assert((cast(PromiseRejectedResult)results[0]).reason.msg == "First");
-    assert((cast(PromiseRejectedResult)results[1]).reason.msg == "Second");
-    assert((cast(PromiseRejectedResult)results[2]).reason.msg == "Third");
+    results.length.should.equal(3);
+    results[0].status.should.equal(PromiseSettledResult.Status.REJECTED);
+    results[1].status.should.equal(PromiseSettledResult.Status.REJECTED);
+    results[2].status.should.equal(PromiseSettledResult.Status.REJECTED);
+    (cast(PromiseRejectedResult)results[0]).reason.msg.should.equal("First");
+    (cast(PromiseRejectedResult)results[1]).reason.msg.should.equal("Second");
+    (cast(PromiseRejectedResult)results[2]).reason.msg.should.equal("Third");
 }
 
 /// Test Promise.allSettled with an empty array
@@ -1140,14 +1143,14 @@ unittest {
     writeln("Testing Promise.allSettled with an empty array");
     auto p = Promise!int.allSettled([]);
     auto results = p.await();
-    assert(results.length == 0);
+    results.length.should.equal(0);
 }
 
 /// Test Promise.try_ fulfills with return value
 unittest {
     writeln("Testing Promise.try_ fulfills with return value");
     auto p = Promise!int.try_(() => 42);
-    assert(p.await() == 42);
+    p.await().should.equal(42);
 }
 
 /// Test Promise.try_ rejects when delegate throws
@@ -1157,14 +1160,14 @@ unittest {
         throw new Exception("Failure");
         return 0;
     });
-    assert(collectExceptionMsg(p.await()) == "Failure");
+    collectExceptionMsg(p.await()).should.equal("Failure");
 }
 
 /// Test Promise.try_ passes arguments to delegate
 unittest {
     writeln("Testing Promise.try_ passes arguments to delegate");
     auto p = Promise!int.try_((int a, int b) => a + b, 2, 3);
-    assert(p.await() == 5);
+    p.await().should.equal(5);
 }
 
 /// Test Promise.try_ with void delegate
@@ -1175,7 +1178,7 @@ unittest {
         called = true;
     });
     p.await();
-    assert(called);
+    called.should.equal(true);
 }
 
 /// Test Promise.withResolvers creates a promise with resolvers
@@ -1183,11 +1186,11 @@ unittest {
     writeln("Testing Promise.withResolvers creates a promise with resolvers");
     auto pw = Promise!int.withResolvers();
 
-    assert(is(typeof(pw.resolve) == delegate));
-    assert(is(typeof(pw.reject) == delegate));
+    is(typeof(pw.resolve) == delegate).should.equal(true);
+    is(typeof(pw.reject) == delegate).should.equal(true);
 
     pw.resolve(42);
-    assert(pw.promise.await() == 42);
+    pw.promise.await().should.equal(42);
 }
 
 /// Test Promise.withResolvers rejects promise
@@ -1198,8 +1201,8 @@ unittest {
     auto reject = pw.reject;
 
     reject(new Exception("Test failure"));
-    assertThrown!Exception(p.await());
-    assert(collectExceptionMsg(p.await()) == "Test failure");
+    (() {p.await();}).should.throwException!Exception;
+    collectExceptionMsg(p.await()).should.equal("Test failure");
 }
 
 /// Test Promise.withResolvers works with void promise
@@ -1210,7 +1213,7 @@ unittest {
     auto resolve = pw.resolve;
 
     resolve();
-    assertNotThrown(p.await());
+    (() {p.await();}).should.not.throwAnyException;
 }
 
 /// Test Promise.withResolvers returns immediately after creation
@@ -1222,10 +1225,10 @@ unittest {
     auto pw = Promise!int.withResolvers();
     sw.stop();
 
-    assert(sw.peek().total!"msecs" < 10);
+    sw.peek().total!"msecs".should.be.lessThan(10);
 
     pw.resolve(123);
-    assert(pw.promise.await() == 123);
+    pw.promise.await().should.equal(123);
 }
 
 /// Test Promise.withResolvers resolves asynchronously
@@ -1239,7 +1242,7 @@ unittest {
         pw.resolve(99);
     }).executeInNewThread();
 
-    assert(p.await() == 99);
+    p.await().should.equal(99);
 }
 
 /// Test Promise.withResolvers rejects asynchronously
@@ -1253,6 +1256,6 @@ unittest {
         pw.reject(new Exception("Async fail"));
     }).executeInNewThread();
 
-    assertThrown!Exception(p.await());
-    assert(collectExceptionMsg(p.await()) == "Async fail");
+    (() {p.await();}).should.throwException!Exception;
+    collectExceptionMsg(p.await()).should.equal("Async fail");
 }
