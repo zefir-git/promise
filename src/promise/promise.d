@@ -293,16 +293,7 @@ public class Promise(T = void) {
     public static PromiseWithResolvers!T withResolvers() {
         Resolve resolve;
         Reject reject;
-        Event event;
-
-        event.initialize(manualReset: true, initialState: false);
-
-        auto promise = new Promise!T((s, j) {
-            resolve = s;
-            reject = j;
-            event.setIfInitialized();
-        });
-        event.wait();
+        auto promise = new Promise!T(resolve, reject);
         return new PromiseWithResolvers!T(promise, resolve, reject);
     }
 
@@ -503,17 +494,9 @@ public class Promise(T = void) {
      *              rejected with that exception as reason.
      */
     public this(Executor executor) {
-        state = State.PENDING;
-        mutex = new Mutex();
-        condition = new Condition(mutex);
-
         Resolve resolve;
-        static if (is(T == void))
-            resolve = () => this._resolve();
-        else
-            resolve = (value) => this._resolve(value);
-
-        Reject reject = (reason) => this._reject(reason);
+        Reject reject;
+        this(resolve, reject);
 
         auto task = task({
             try {
@@ -535,18 +518,10 @@ public class Promise(T = void) {
      *              exception as reason.
      */
     public this(T delegate() executor) {
-        state = State.PENDING;
-        mutex = new Mutex();
-        condition = new Condition(mutex);
-
         Resolve resolve;
-        static if (is(T == void))
-            resolve = () => this._resolve();
-        else
-            resolve = (value) => this._resolve(value);
-
-        Reject reject = (reason) => this._reject(reason);
-
+        Reject reject;
+        this(resolve, reject);
+        
         auto task = task({
             static if (is(T == void))
                 try {
@@ -564,6 +539,19 @@ public class Promise(T = void) {
     }
 
     private this() {}
+
+    private this(out Resolve resolve, out Reject reject) {
+        state = State.PENDING;
+        mutex = new Mutex();
+        condition = new Condition(mutex);
+
+        static if (is(T == void))
+            resolve = () => this._resolve();
+        else
+            resolve = (value) => this._resolve(value);
+
+        reject = (reason) => this._reject(reason);
+    }
 
     /**
      * Creates a Promise that is rejected with a given reason.
