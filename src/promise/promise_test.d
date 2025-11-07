@@ -215,29 +215,29 @@ unittest {
     (() {p2.await();}).should.throwException!Exception;
 }
 
-/// Test catch_ with rejection
+/// Test whenCatch with rejection
 unittest {
-    writeln("Testing catch_ with rejection");
+    writeln("Testing whenCatch with rejection");
     auto p = Promise!int.reject(new Exception("Catch me"))
-        .catch_((error) => 123);
+        .whenCatch((error) => 123);
     p.await().should.equal(123);
 }
 
-/// Test catch_ with fulfillment (no-op)
+/// Test whenCatch with fulfillment (no-op)
 unittest {
-    writeln("Testing catch_ with fulfillment (no-op)");
+    writeln("Testing whenCatch with fulfillment (no-op)");
     auto p = Promise!int.resolve(50)
-        .catch_((error) => 999);
+        .whenCatch((error) => 999);
     p.await().should.equal(50);
 }
 
-/// Test finally_ with fulfillment
+/// Test whenFinally with fulfillment
 unittest {
-    writeln("Testing finally_ with fulfillment");
+    writeln("Testing whenFinally with fulfillment");
     bool finallyCalled = false;
     auto p = Promise!int.resolve(100);
 
-    auto p2 = p.finally_(() {
+    auto p2 = p.whenFinally(() {
     Thread.sleep(dur!"msecs"(5));
         finallyCalled = true;
     });
@@ -248,13 +248,13 @@ unittest {
     finallyCalled.should.equal(true);
 }
 
-/// Test finally_ with rejection
+/// Test whenFinally with rejection
 unittest {
-    writeln("Testing finally_ with rejection");
+    writeln("Testing whenFinally with rejection");
     bool finallyCalled = false;
     auto p = Promise!int.reject(new Exception("Finally test"));
 
-    auto p2 = p.finally_(() {
+    auto p2 = p.whenFinally(() {
         Thread.sleep(dur!"msecs"(5));
         finallyCalled = true;
     });
@@ -268,11 +268,11 @@ unittest {
     finallyCalled.should.equal(true);
 }
 
-/// Test finally_ exception overrides original result
+/// Test whenFinally exception overrides original result
 unittest {
-    writeln("Testing finally_ exception overrides original result");
+    writeln("Testing whenFinally exception overrides original result");
     auto p1 = Promise!int.resolve(50)
-        .finally_(() {
+        .whenFinally(() {
             throw new Exception("Finally error");
         });
 
@@ -280,7 +280,7 @@ unittest {
     collectExceptionMsg(p1.await()).should.equal("Finally error");
 
     auto p2 = Promise!int.reject(new Exception("Rejected"))
-        .finally_(() {
+        .whenFinally(() {
             throw new Exception("Finally error");
         });
 
@@ -430,14 +430,14 @@ unittest {
     collectExceptionMsg(p2.await()).should.equal("Handler error");
 }
 
-/// Test catch_ handler throwing exception
+/// Test whenCatch handler throwing exception
 unittest {
-    writeln("Testing catch_ handler throwing exception");
+    writeln("Testing whenCatch handler throwing exception");
     auto p = new Promise!int((resolve, reject) {
         reject(new Exception("Original"));
     });
 
-    auto p2 = p.catch_((error) {
+    auto p2 = p.whenCatch((error) {
         return throw new Exception("Catch handler error");
     });
 
@@ -466,7 +466,7 @@ unittest {
             if (v > 15) throw new Exception("Too big");
             return v;
         })
-        .catch_((e) => 0)
+        .whenCatch((e) => 0)
         .then!int((v) => v + 100)
         .await();
 
@@ -542,7 +542,7 @@ unittest {
     });
 
     auto result = p
-        .catch_((e) => 10)
+        .whenCatch((e) => 10)
         .then!int((v) => v * 3)
         .await();
 

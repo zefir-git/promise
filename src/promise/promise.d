@@ -135,10 +135,10 @@ public class Promise(T = void) {
                         values[index] = new PromiseFulfilledResult!T(val);
                         return val;
                     });
-                promise.catch_((e) {
+                promise.whenCatch((e) {
                     values[index] = new PromiseRejectedResult(e);
                     return throw e;
-                }).finally_(() {
+                }).whenFinally(() {
                     if (atomicOp!"-="(remaining, 1) == 0)
                         resolve(values);
                 });
@@ -192,7 +192,7 @@ public class Promise(T = void) {
                     promise.then!void(() {
                         if (cas(&done, false, true))
                             resolve();
-                    }).catch_((Exception e) {
+                    }).whenCatch((Exception e) {
                         exceptions[index] = e;
                         if (atomicOp!"-="(remaining, 1) == 0 && cas(&done, false, true))
                             reject(new AggregateException(exceptions, "No Promise in Promise.any was resolved"));
@@ -201,7 +201,7 @@ public class Promise(T = void) {
                     promise.then!void((T value) {
                         if (cas(&done, false, true))
                             resolve(value);
-                    }).catch_((Exception e) {
+                    }).whenCatch((Exception e) {
                         exceptions[index] = e;
                         if (atomicOp!"-="(remaining, 1) == 0 && cas(&done, false, true))
                             reject(new AggregateException(exceptions, "No Promise in Promise.any was resolved"));
@@ -253,7 +253,7 @@ public class Promise(T = void) {
                 static if (is(T == void)) promise.then!void(() {
                     if (cas(&done, false, true))
                         resolve();
-                }).catch_((Exception e) {
+                }).whenCatch((Exception e) {
                     if (cas(&done, false, true))
                         reject(e);
                 });
@@ -261,7 +261,7 @@ public class Promise(T = void) {
                 else promise.then!void((T value) {
                     if (cas(&done, false, true))
                         resolve(value);
-                }).catch_((Exception e) {
+                }).whenCatch((Exception e) {
                     if (cas(&done, false, true))
                         reject(e);
                 });
@@ -614,7 +614,7 @@ public class Promise(T = void) {
      *          Promise is rejected, this Promise resolves to the value returned by the `onRejected` delegate or rejects
      *          with the reason thrown by it, otherwise it fulfills with the same value as the original Promise.
      */
-    public Promise!T catch_(T delegate(Exception) onRejected) {
+    public Promise!T whenCatch(T delegate(Exception) onRejected) {
         return then(null, onRejected);
     }
 
@@ -627,7 +627,7 @@ public class Promise(T = void) {
      *          throws an exception, the Promise rejects with that exception, otherwise will settle with the same state
      *          and value (or reason) as the original Promise.
      */
-    public Promise!T finally_(void delegate() onFinally) {
+    public Promise!T whenFinally(void delegate() onFinally) {
         static if(is(T == void))
             return then!void(() {
                 onFinally();
