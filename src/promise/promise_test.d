@@ -1,15 +1,17 @@
 module promise_test;
 
-import core.thread;
-import core.time;
-import std.conv;
-import std.exception;
-import std.parallelism;
-import std.range;
-import std.stdio;
-
-import promise;
-import fluent.asserts;
+version (unittest) {
+    import core.thread;
+    import core.time;
+    import std.conv;
+    import std.exception;
+    import std.parallelism;
+    import std.range;
+    import std.stdio;
+    
+    import promise;
+    import fluent.asserts;
+}
 
 /// Test basic promise fulfillment with value
 unittest {
