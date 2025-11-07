@@ -2,8 +2,6 @@ module promise_test;
 
 version (unittest) {
     import core.thread;
-    import core.time;
-    import std.conv;
     import std.exception;
     import std.parallelism;
     import std.range;

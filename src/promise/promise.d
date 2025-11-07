@@ -4,10 +4,7 @@ import core.atomic;
 import core.sync.condition;
 import core.sync.event;
 import core.sync.mutex;
-import std.array;
 import std.parallelism;
-import std.range;
-import std.traits;
 
 /**
  * Represents the eventual completion (or failure) of an asynchronous operation.
@@ -180,7 +177,6 @@ public class Promise(T = void) {
                             resolve(promise.await());
                     }
                     catch (Exception e) {
-                        import std.stdio;
                         exceptions[index] = e;
                         if (atomicOp!"-="(remaining, 1) == 0 && cas(&done, false, true))
                             reject(new AggregateException(exceptions, "No Promise in Promise.any was resolved"));
