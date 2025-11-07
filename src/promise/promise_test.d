@@ -839,7 +839,7 @@ unittest {
     foreach (_; parallel(iota(0, 100))) {
         auto p = Promise!int.race([
             new Promise!int((resolve, reject) {
-                Thread.sleep(dur!"msecs"(150));
+                Thread.sleep(dur!"msecs"(300));
                 resolve(1);
             }),
             new Promise!int((resolve, reject) {
@@ -847,7 +847,7 @@ unittest {
                 resolve(2);
             }),
             new Promise!int((resolve, reject) {
-                Thread.sleep(dur!"msecs"(100));
+                Thread.sleep(dur!"msecs"(200));
                 resolve(3);
             })
         ]);
@@ -861,7 +861,7 @@ unittest {
     foreach (_; parallel(iota(0, 100))) {
         auto p = Promise!void.race([
             new Promise!void((resolve, reject) {
-                Thread.sleep(dur!"msecs"(150));
+                Thread.sleep(dur!"msecs"(300));
                 reject(new Exception("One"));
             }),
             new Promise!void((resolve, reject) {
@@ -869,7 +869,7 @@ unittest {
                 reject(new Exception("Two"));
             }),
             new Promise!void((resolve, reject) {
-                Thread.sleep(dur!"msecs"(100));
+                Thread.sleep(dur!"msecs"(200));
                 reject(new Exception("Three"));
             })
         ]);
@@ -911,7 +911,7 @@ unittest {
             Thread.sleep(dur!"msecs"(25));
             return 2;
         });
-        Thread.sleep(dur!"msecs"(50));
+        Thread.sleep(dur!"msecs"(100));
         auto promises = [
             new Promise!int(() {
                 Thread.sleep(dur!"msecs"(100));
@@ -942,7 +942,7 @@ unittest {
     foreach (_; parallel(iota(0, 100))) {
         auto p = Promise!int.any([
             new Promise!int((resolve, reject) {
-                Thread.sleep(dur!"msecs"(150));
+                Thread.sleep(dur!"msecs"(300));
                 resolve(1);
             }),
             new Promise!int((resolve, reject) {
@@ -950,7 +950,7 @@ unittest {
                 resolve(2);
             }),
             new Promise!int((resolve, reject) {
-                Thread.sleep(dur!"msecs"(100));
+                Thread.sleep(dur!"msecs"(200));
                 resolve(3);
             })
         ]);
@@ -999,7 +999,7 @@ unittest {
     foreach (_; parallel(iota(0, 100))) {
         auto p = Promise!int.any([
             new Promise!int(() {
-                Thread.sleep(dur!"msecs"(150));
+                Thread.sleep(dur!"msecs"(300));
                 return 1;
             }),
             new Promise!int(() {
@@ -1007,11 +1007,11 @@ unittest {
                 return throw new Exception("Reject");
             }),
             new Promise!int(() {
-                Thread.sleep(dur!"msecs"(150));
+                Thread.sleep(dur!"msecs"(350));
                 return throw new Exception("Reject");
             }),
             new Promise!int(() {
-                Thread.sleep(dur!"msecs"(100));
+                Thread.sleep(dur!"msecs"(50));
                 return 42;
             }),
             Promise!int.reject(new Exception("Reject"))
