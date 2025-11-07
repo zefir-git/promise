@@ -47,8 +47,9 @@ public class Promise(T = void) {
             shared bool done = false;
 
             bool schedule(size_t index, Promise!U promise) {
-                if (atomicLoad(done))
+                if (done)
                     return false;
+
                 promise.then!void((value) {
                     values[index] = value;
                     if (atomicOp!"-="(remaining, 1) == 0 && cas(&done, false, true)) {
@@ -86,8 +87,9 @@ public class Promise(T = void) {
             shared bool done = false;
 
             bool schedule(size_t index, Promise!U promise) {
-                if (atomicLoad(done))
+                if (done)
                     return false;
+
                 promise.then!void(() {
                     if (atomicOp!"-="(remaining, 1) == 0 && cas(&done, false, true))
                         resolve();
@@ -164,7 +166,7 @@ public class Promise(T = void) {
             Exception[] exceptions = new Exception[promises.length];
 
             bool schedule(size_t index, Promise!T promise) {
-                if (atomicLoad(done))
+                if (done)
                     return false;
 
                 // settled promises are checked on this promise thread to avoid racing
@@ -228,7 +230,7 @@ public class Promise(T = void) {
             shared bool done = false;
 
             bool schedule(Promise!T promise) {
-                if (atomicLoad(done))
+                if (done)
                     return false;
 
                 // settled promises are checked on this promise thread to avoid racing
@@ -289,16 +291,16 @@ public class Promise(T = void) {
         });
     }
 
-    /** 
+    /**
      * Creates an object that contains a new `Promise` and two functions to resolve or reject it.
      */
     public static PromiseWithResolvers!T withResolvers() {
         Resolve resolve;
         Reject reject;
         Event event;
-        
+
         event.initialize(manualReset: true, initialState: false);
-        
+
         auto promise = new Promise!T((s, j) {
             resolve = s;
             reject = j;
@@ -753,26 +755,26 @@ public class AggregateException : Exception {
     }
 }
 
-/** 
+/**
  * Represents a promise with its associated resolve and reject functions.
  */
 public final class PromiseWithResolvers(T) {
     private Promise!T _promise;
 
-    /** 
-     * Promise instance. 
+    /**
+     * Promise instance.
      */
     public @property Promise!T promise() {
         return _promise;
     }
 
-    /** 
-     * Function for fulfilling the promise. 
+    /**
+     * Function for fulfilling the promise.
      */
     public Promise!T.Resolve resolve;
 
-    /** 
-     * Function for rejecting the promise. 
+    /**
+     * Function for rejecting the promise.
      */
     public Promise!T.Reject reject;
 
