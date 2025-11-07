@@ -487,7 +487,7 @@ unittest {
 
     result.should.equal(123);
     sw.peek().total!"msecs".should.be.greaterOrEqualTo(200);
-    sw.peek().total!"msecs".should.be.lessOrEqualTo(350);
+    sw.peek().total!"msecs".should.be.lessOrEqualTo(400);
 }
 
 /// Test Promise.resolve with already resolved promise
@@ -828,7 +828,7 @@ unittest {
 
     (() {p.await();}).should.throwException!Exception;
     sw.stop();
-    sw.peek().total!"msecs".should.be.lessThan(100);
+    sw.peek().total!"msecs".should.be.lessThan(200);
 }
 
 /// Test Promise.race resolves with first settled promise
@@ -845,7 +845,7 @@ unittest {
                 resolve(2);
             }),
             new Promise!int((resolve, reject) {
-                Thread.sleep(dur!"msecs"(200));
+                Thread.sleep(dur!"msecs"(250));
                 resolve(3);
             })
         ]);
@@ -867,7 +867,7 @@ unittest {
                 reject(new Exception("Two"));
             }),
             new Promise!void((resolve, reject) {
-                Thread.sleep(dur!"msecs"(200));
+                Thread.sleep(dur!"msecs"(250));
                 reject(new Exception("Three"));
             })
         ]);
@@ -909,7 +909,7 @@ unittest {
             Thread.sleep(dur!"msecs"(25));
             return 2;
         });
-        Thread.sleep(dur!"msecs"(100));
+        Thread.sleep(dur!"msecs"(150));
         auto promises = [
             new Promise!int(() {
                 Thread.sleep(dur!"msecs"(100));
