@@ -6,6 +6,17 @@ import core.sync.event;
 import core.sync.mutex;
 import std.parallelism;
 
+private TaskPool _pool;
+
+package TaskPool pool() {
+    if (_pool is null) {
+        assert(totalCPUs > 2, "Promise implementation cannot work single-threaded");
+        _pool = new TaskPool(totalCPUs - 1);
+        _pool.isDaemon = true;
+    }
+    return _pool;
+}
+
 /**
  * Represents the eventual completion (or failure) of an asynchronous operation.
  */
@@ -498,15 +509,14 @@ public class Promise(T = void) {
         Reject reject;
         this(resolve, reject);
 
-        auto task = task({
+        pool().put(task({
             try {
                 executor(resolve, reject);
             }
             catch (Exception e) {
                 reject(e);
             }
-        });
-        task.executeInNewThread();
+        }));
     }
 
     /**
@@ -522,7 +532,7 @@ public class Promise(T = void) {
         Reject reject;
         this(resolve, reject);
         
-        auto task = task({
+        pool().put(task({
             static if (is(T == void))
                 try {
                     executor();
@@ -534,8 +544,7 @@ public class Promise(T = void) {
                 resolve(executor());
             catch (Exception e)
                 reject(e);
-        });
-        task.executeInNewThread();
+        }));
     }
 
     private this() {}
