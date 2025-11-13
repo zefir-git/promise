@@ -6,6 +6,8 @@ import core.sync.event;
 import core.sync.mutex;
 import std.parallelism;
 
+private alias PromiseTask = Task!(run, void delegate())*;
+
 private TaskPool _pool;
 
 package TaskPool pool() {
@@ -28,6 +30,9 @@ public class Promise(T = void) {
         Exception rejectionReason;
         Mutex mutex;
         Condition condition;
+
+        PromiseTask[] fulfillmentContinuations = [];
+        PromiseTask[] rejectionContinuations = [];
     }
 
     private static const enum State {
@@ -327,6 +332,9 @@ public class Promise(T = void) {
                 state = State.FULFILLED;
                 condition.notifyAll();
             }
+            foreach (c; fulfillmentContinuations)
+                pool().put(c);
+            fulfillmentContinuations = [];
         }
 
         /**
@@ -344,32 +352,27 @@ public class Promise(T = void) {
         public Promise!U then(U)(U delegate() onFulfilled, U delegate(Exception) onRejected) {
             assert(onFulfilled !is null || is(U == void), "Promise!void.then!" ~ U.stringof ~ "() called with no "
                 ~ "onFulfilled handler: cannot produce " ~ U.stringof ~ " from void.");
-            return new Promise!U((resolve, reject) {
-                try {
-                    await();
-                }
-                catch (Exception e) {
-                    if (onRejected !is null)
-                        static if (is(U == void)) {
-                            onRejected(e);
-                            resolve();
-                        }
-                        else resolve(onRejected(e));
-                    else reject(e);
+            auto child = Promise!U.withResolvers();
 
-                    return;
+            synchronized (mutex) {
+                if (state == State.PENDING) {
+                    fulfillmentContinuations ~= fulfilledContinuation!U(child, onFulfilled);
+                    rejectionContinuations ~= rejectedContinuation!U(child, onRejected);
+                    return child.promise;
                 }
+            }
 
-                if (onFulfilled !is null) {
-                    static if (is(U == void)) {
-                        onFulfilled();
-                        resolve();
-                    }
-                    else resolve(onFulfilled());
-                }
-                else static if(is(U == void))
-                    resolve();
-            });
+            final switch (state) {
+                case State.FULFILLED:
+                    pool().put(fulfilledContinuation(child, onFulfilled));
+                    break;
+                case State.REJECTED:
+                    pool().put(rejectedContinuation(child, onRejected));
+                    break;
+                case State.PENDING: assert(false);
+            }
+
+            return child.promise;
         }
 
         /**
@@ -383,6 +386,30 @@ public class Promise(T = void) {
          */
         public Promise!U then(U)(U delegate() onFulfilled) {
             return then(onFulfilled, null);
+        }
+
+        private PromiseTask fulfilledContinuation(U)(PromiseWithResolvers!U child, U delegate() onFulfilled) {
+            if (onFulfilled !is null) {
+                static if (is(U == void)) return task({
+                    try onFulfilled();
+                    catch (Exception e) {
+                        child.reject(e);
+                        return;
+                    }
+                    child.resolve();
+                });
+                else return task({
+                    U result;
+                    try result = onFulfilled();
+                    catch (Exception e) {
+                        child.reject(e);
+                        return;
+                    }
+                    child.resolve(result);
+                });
+            }
+            else static if (is(U == T)) return task({child.resolve();});
+            assert(false);
         }
     }
 
@@ -410,6 +437,9 @@ public class Promise(T = void) {
                 fulfillmentValue = value;
                 condition.notifyAll();
             }
+            foreach (c; fulfillmentContinuations)
+                pool().put(c);
+            fulfillmentContinuations = [];
         }
 
         /**
@@ -428,37 +458,27 @@ public class Promise(T = void) {
         public Promise!U then(U)(U delegate(T) onFulfilled, U delegate(Exception) onRejected) {
             assert(onFulfilled !is null || is(U == void) || is(U == T), "Promise!" ~ T.stringof ~ ".then!" ~ U.stringof
             ~ "() called with no onFulfilled handler: cannot produce " ~ U.stringof ~ " from " ~ T.stringof ~ ".");
-            return new Promise!U((resolve, reject) {
-                T result;
-                try {
-                    result = await();
-                }
-                catch (Exception e) {
-                    if (onRejected !is null)
-                        static if (is(U == void)) {
-                            onRejected(e);
-                            resolve();
-                        }
-                        else resolve(onRejected(e));
-                    else reject(e);
+            auto child = Promise!U.withResolvers();
 
-                    return;
+            synchronized (mutex) {
+                if (state == State.PENDING) {
+                    fulfillmentContinuations ~= fulfilledContinuation!U(child, onFulfilled);
+                    rejectionContinuations ~= rejectedContinuation!U(child, onRejected);
+                    return child.promise;
                 }
+            }
 
-                if (onFulfilled !is null) {
-                    static if (is(U == void)) {
-                        onFulfilled(result);
-                        resolve();
-                    }
-                    else resolve(onFulfilled(result));
-                }
-                else {
-                    static if (is(U == void))
-                        resolve();
-                    else static if (is(U == T))
-                        resolve(result);
-                }
-            });
+            final switch (state) {
+                case State.FULFILLED:
+                    pool().put(fulfilledContinuation(child, onFulfilled));
+                    break;
+                case State.REJECTED:
+                    pool().put(rejectedContinuation(child, onRejected));
+                    break;
+                case State.PENDING: assert(false);
+            }
+
+            return child.promise;
         }
 
         /**
@@ -473,6 +493,31 @@ public class Promise(T = void) {
          */
         public Promise!U then(U)(U delegate(T) onFulfilled) {
             return then(onFulfilled, null);
+        }
+
+        private PromiseTask fulfilledContinuation(U)(PromiseWithResolvers!U child, U delegate(T) onFulfilled) {
+            if (onFulfilled !is null) {
+                static if (is(U == void)) return task({
+                    try onFulfilled(fulfillmentValue);
+                    catch (Exception e) {
+                        child.reject(e);
+                        return;
+                    }
+                    child.resolve();
+                });
+                else return task({
+                    U result;
+                    try result = onFulfilled(fulfillmentValue);
+                    catch (Exception e) {
+                        child.reject(e);
+                        return;
+                    }
+                    child.resolve(result);
+                });
+            }
+            else static if (is(U == T)) return task({child.resolve(fulfillmentValue);});
+            else static if (is(U == void)) return task({child.resolve();});
+            assert(false);
         }
     }
 
@@ -531,7 +576,7 @@ public class Promise(T = void) {
         Resolve resolve;
         Reject reject;
         this(resolve, reject);
-        
+
         pool().put(task({
             static if (is(T == void))
                 try {
@@ -645,6 +690,32 @@ public class Promise(T = void) {
             rejectionReason = reason;
             condition.notifyAll();
         }
+        foreach (c; rejectionContinuations)
+            pool().put(c);
+        rejectionContinuations = [];
+    }
+
+    private PromiseTask rejectedContinuation(U)(PromiseWithResolvers!U child, U delegate(Exception) onRejected) {
+        if (onRejected !is null) {
+            static if (is(U == void)) return task({
+                try onRejected(rejectionReason);
+                catch (Exception e) {
+                    child.reject(e);
+                    return;
+                }
+                child.resolve();
+            });
+            else return task({
+                U result;
+                try result = onRejected(rejectionReason);
+                catch (Exception e) {
+                    child.reject(e);
+                    return;
+                }
+                child.resolve(result);
+            });
+        }
+        else return task({child.reject(rejectionReason);});
     }
 }
 
