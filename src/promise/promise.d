@@ -8,17 +8,6 @@ import std.parallelism;
 
 private alias PromiseTask = Task!(run, void delegate())*;
 
-private TaskPool _pool;
-
-package TaskPool pool() {
-    if (_pool is null) {
-        assert(totalCPUs > 2, "Promise implementation cannot work single-threaded");
-        _pool = new TaskPool(totalCPUs - 1);
-        _pool.isDaemon = true;
-    }
-    return _pool;
-}
-
 /**
  * Represents the eventual completion (or failure) of an asynchronous operation.
  */
@@ -333,7 +322,7 @@ public class Promise(T = void) {
                 condition.notifyAll();
             }
             foreach (c; fulfillmentContinuations)
-                pool().put(c);
+                c.executeInNewThread();
             fulfillmentContinuations = [];
         }
 
@@ -364,10 +353,10 @@ public class Promise(T = void) {
 
             final switch (state) {
                 case State.FULFILLED:
-                    pool().put(fulfilledContinuation(child, onFulfilled));
+                    fulfilledContinuation(child, onFulfilled).executeInNewThread();
                     break;
                 case State.REJECTED:
-                    pool().put(rejectedContinuation(child, onRejected));
+                    rejectedContinuation(child, onRejected).executeInNewThread();
                     break;
                 case State.PENDING: assert(false);
             }
@@ -438,7 +427,7 @@ public class Promise(T = void) {
                 condition.notifyAll();
             }
             foreach (c; fulfillmentContinuations)
-                pool().put(c);
+                c.executeInNewThread();
             fulfillmentContinuations = [];
         }
 
@@ -470,10 +459,10 @@ public class Promise(T = void) {
 
             final switch (state) {
                 case State.FULFILLED:
-                    pool().put(fulfilledContinuation(child, onFulfilled));
+                    fulfilledContinuation(child, onFulfilled).executeInNewThread();
                     break;
                 case State.REJECTED:
-                    pool().put(rejectedContinuation(child, onRejected));
+                    rejectedContinuation(child, onRejected).executeInNewThread();
                     break;
                 case State.PENDING: assert(false);
             }
@@ -554,14 +543,15 @@ public class Promise(T = void) {
         Reject reject;
         this(resolve, reject);
 
-        pool().put(task({
+        auto task = task({
             try {
                 executor(resolve, reject);
             }
             catch (Exception e) {
                 reject(e);
             }
-        }));
+        });
+        task.executeInNewThread();
     }
 
     /**
@@ -577,7 +567,7 @@ public class Promise(T = void) {
         Reject reject;
         this(resolve, reject);
 
-        pool().put(task({
+        auto task = task({
             static if (is(T == void))
                 try {
                     executor();
@@ -589,7 +579,8 @@ public class Promise(T = void) {
                 resolve(executor());
             catch (Exception e)
                 reject(e);
-        }));
+        });
+        task.executeInNewThread();
     }
 
     private this() {}
@@ -691,7 +682,7 @@ public class Promise(T = void) {
             condition.notifyAll();
         }
         foreach (c; rejectionContinuations)
-            pool().put(c);
+            c.executeInNewThread();
         rejectionContinuations = [];
     }
 
