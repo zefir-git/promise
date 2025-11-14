@@ -4,7 +4,6 @@ version (unittest) {
     import core.thread;
     import std.exception;
     import std.parallelism;
-    import std.range;
     import std.stdio;
     
     import promise;
@@ -834,7 +833,7 @@ unittest {
 /// Test Promise.race resolves with first settled promise
 unittest {
     writeln("Testing Promise.race resolves with first settled promise");
-    foreach (_; parallel(iota(0, 100))) {
+    foreach (_; 0..100) {
         auto p = Promise!int.race([
             new Promise!int((resolve, reject) {
                 Thread.sleep(dur!"msecs"(300));
@@ -856,7 +855,7 @@ unittest {
 /// Test Promise.race rejects with first settled promise
 unittest {
     writeln("Testing Promise.race rejects with first settled promise");
-    foreach (_; parallel(iota(0, 100))) {
+    foreach (_; 0..100) {
         auto p = Promise!void.race([
             new Promise!void((resolve, reject) {
                 Thread.sleep(dur!"msecs"(300));
@@ -878,7 +877,7 @@ unittest {
 /// Test Promise.race with all pre-resolved promises
 unittest {
     writeln("Testing Promise.race with all pre-resolved promises");
-    foreach (_; parallel(iota(0, 100))) {
+    foreach (_; 0..100) {
         auto p = Promise!int.race([
             Promise!int.resolve(1),
             Promise!int.resolve(2),
@@ -891,7 +890,7 @@ unittest {
 /// Test Promise.race with all pre-rejected promises
 unittest {
     writeln("Testing Promise.race with all pre-rejected promises");
-    foreach (_; parallel(iota(0, 100))) {
+    foreach (_; 0..100) {
         auto p = Promise!int.race([
             Promise!int.reject(new Exception("First")),
             Promise!int.reject(new Exception("Second")),
@@ -904,7 +903,7 @@ unittest {
 /// Test Promise.race with a mix of pending and fulfilled promises
 unittest {
     writeln("Testing Promise.race with a mix of pending and fulfilled promises");
-    foreach (_; parallel(iota(0, 100))) {
+    foreach (_; 0..100) {
         auto resolved = new Promise!int(() {
             Thread.sleep(dur!"msecs"(25));
             return 2;
@@ -937,7 +936,7 @@ unittest {
 /// Test Promise.any resolves with first settled promise
 unittest {
     writeln("Testing Promise.any resolves with first settled promise");
-    foreach (_; parallel(iota(0, 100))) {
+    foreach (_; 0..100) {
         auto p = Promise!int.any([
             new Promise!int((resolve, reject) {
                 Thread.sleep(dur!"msecs"(300));
@@ -959,7 +958,7 @@ unittest {
 /// Test Promise.any with all pre-resolved promises
 unittest {
     writeln("Testing Promise.any with all pre-resolved promises");
-    foreach (_; parallel(iota(0, 100))) {
+    foreach (_; 0..100) {
         auto p = Promise!int.race([
             Promise!int.resolve(1),
             Promise!int.resolve(2),
@@ -972,7 +971,7 @@ unittest {
 /// Test Promise.any with all pre-rejected promises
 unittest {
     writeln("Testing Promise.any with all pre-rejected promises");
-    foreach (_; parallel(iota(0, 100))) {
+    foreach (_; 0..100) {
         auto p = Promise!int.any([
             Promise!int.reject(new Exception("First")),
             Promise!int.reject(new Exception("Second")),
@@ -994,7 +993,7 @@ unittest {
 /// Test Promise.any with a mix of fulfilling and rejecting promises
 unittest {
     writeln("Testing Promise.any with a mix of fulfilling and rejecting promises");
-    foreach (_; parallel(iota(0, 100))) {
+    foreach (_; 0..100) {
         auto p = Promise!int.any([
             new Promise!int(() {
                 Thread.sleep(dur!"msecs"(300));
@@ -1103,7 +1102,7 @@ unittest {
 /// Test Promise.allSettled with all pre-resolved promises
 unittest {
     writeln("Testing Promise.allSettled with all pre-resolved promises");
-    foreach (_; parallel(iota(0, 100))) {
+    foreach (_; 0..100) {
         auto p = Promise!int.allSettled([
             Promise!int.resolve(1),
             Promise!int.resolve(2),
