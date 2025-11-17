@@ -3,9 +3,14 @@
 		"Zefir Kirilov"
 	],
 	"copyright": "Copyright © 2025 Zefir Kirilov",
+	"dependencies": {
+		"fluent-asserts": "~>1.0.1"
+	},
 	"description": "A library for abstract asynchronous execution inspired by Promises/A+.",
 	"license": "GPL-3.0-only",
 	"name": "promise",
-	"sourcePaths": ["src"],
+	"sourcePaths": [
+		"src"
+	],
 	"targetType": "library"
 }
