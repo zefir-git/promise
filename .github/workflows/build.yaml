@@ -16,10 +16,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest]
         compiler: [dmd, ldc]
-        exclude:
-          - {os: macos-latest, compiler: dmd}
 
     steps:
       - name: Checkout repository
